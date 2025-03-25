@@ -23,6 +23,7 @@ export interface DataOrder {
     is_payment: boolean;
     note: string;
     actual_price: number;
+    unit_price: number;
 }
 
 export interface DataFamily {
