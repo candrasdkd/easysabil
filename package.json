@@ -10,13 +10,34 @@
     "test": "jest"
   },
   "dependencies": {
+    "@monicon/metro": "^1.2.2",
+    "@monicon/native": "^1.2.2",
+    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-community/cli-doctor": "^17.0.0",
+    "@react-native-vector-icons/common": "^11.0.0",
+    "@react-native-vector-icons/fontawesome6": "^6.7.1",
+    "@react-navigation/drawer": "^7.1.2",
+    "@react-navigation/native": "^7.0.15",
+    "@react-navigation/native-stack": "^7.2.1",
+    "@supabase/supabase-js": "^2.49.1",
     "react": "19.0.0",
-    "react-native": "0.78.0"
+    "react-native": "0.78.0",
+    "react-native-calendars": "^1.1310.0",
+    "react-native-config": "^1.5.5",
+    "react-native-element-dropdown": "^2.12.4",
+    "react-native-gesture-handler": "^2.24.0",
+    "react-native-paper": "^5.13.1",
+    "react-native-reanimated": "^3.17.1",
+    "react-native-safe-area-context": "^5.3.0",
+    "react-native-screens": "^4.9.2",
+    "react-native-svg": "^15.11.2",
+    "react-native-url-polyfill": "^2.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.25.0",
+    "@iconify/json": "^2.2.317",
     "@react-native-community/cli": "15.0.1",
     "@react-native-community/cli-platform-android": "15.0.1",
     "@react-native-community/cli-platform-ios": "15.0.1",
@@ -30,6 +51,7 @@
     "eslint": "^8.19.0",
     "jest": "^29.6.3",
     "prettier": "2.8.8",
+    "react-native-dotenv": "^3.4.11",
     "react-test-renderer": "19.0.0",
     "typescript": "5.0.4"
   },

@@ -1,11 +1,41 @@
-const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
+const { getDefaultConfig } = require("@react-native/metro-config");
+const { withMonicon } = require("@monicon/metro");
 
-/**
- * Metro configuration
- * https://reactnative.dev/docs/metro
- *
- * @type {import('@react-native/metro-config').MetroConfig}
- */
-const config = {};
+const config = getDefaultConfig(__dirname);
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+const configWithMonicon = withMonicon(config, {
+  icons: [
+    "ic:outline-settings",
+    "mdi-light:settings",
+    "material-symbols:arrow-back-ios-new-rounded",
+    "material-symbols:arrow-forward-ios-rounded",
+    "material-symbols:delete-outline-sharp",
+    "material-symbols:upload-rounded",
+    "material-symbols:motion-play-outline",
+    "material-symbols:android-camera-outline",
+    "material-symbols:arrow-back-rounded",
+    "material-symbols:add",
+    "material-symbols:cloud-download",
+    "material-symbols:zoom-in-rounded",
+    "material-symbols:zoom-out-rounded",
+    "material-symbols:archive-rounded",
+    "mdi:archive-check",
+    "pajamas:scroll-up",
+    "tdesign:clear-filled",
+    "material-symbols:edit-square-outline",
+    "material-symbols:folder-open-rounded",
+    "material-symbols:chevron-right-rounded",
+    "material-symbols:check-box",
+    "material-symbols:cancel",
+    "material-symbols:check-box-outline-blank",
+    "material-symbols:check-box-rounded",
+    "material-symbols:filter-alt",
+    "mdi:checkbox-blank-circle-outline",
+    "mdi:checkbox-marked-circle"
+
+  ],
+  // Load all icons from the listed collections
+  collections: ["radix-icons"],
+});
+
+module.exports = configWithMonicon;

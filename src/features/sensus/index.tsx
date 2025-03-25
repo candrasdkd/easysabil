@@ -1,0 +1,501 @@
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, ActivityIndicator, Text, View, TextInput, Modal, TouchableOpacity, Alert } from 'react-native';
+import { Button, DataTable } from 'react-native-paper';
+import { COLOR_BG_CARD, COLOR_DELETE_1, COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1, COLOR_WHITE_2 } from '../../utils/constant';
+import { DataFamily, DataSensus } from '../../types/';
+import { supabase } from '../../config';
+import { Monicon } from "@monicon/native";
+import { Dropdown } from 'react-native-element-dropdown';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type RootStackParamList = {
+    CreateUser: { dataFamily: DataFamily[] | null };
+    UpdateUser: { detailUser: DataSensus, dataFamily: DataFamily[] | null };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+const SensusScreen = () => {
+    const navigation = useNavigation<NavigationProp>()
+    const [sensus, setSensus] = useState<DataSensus[] | null>(null);
+    const [dataFamily, setDataFamily] = useState<DataFamily[] | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState(0);
+    const [itemsPerPage, setItemsPerPage] = useState(20);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
+    const [isFocus, setIsFocus] = useState(false);
+    const [settingFilter, setSettingFilter] = useState({
+        grade: { label: '', value: null },
+        family: { label: '', value: null, id: null },
+        marriage: { label: '', value: null },
+    })
+    const fetchSensus = async () => {
+        // handleClear();
+        try {
+            const { data, error } = await supabase
+                .from('sensus')
+                .select('*')
+                .order('name', { ascending: true });
+            if (error) {
+                setError(error.message);
+                console.error('Error:', error.message);
+                return;
+            }
+            setSensus(data);
+        } catch (e) {
+            console.error('Fetch error:', e);
+            setError('Failed to fetch data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchDataFamily = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('category_family')
+                .select('id, name')
+                .order('name', { ascending: true });
+            if (error) {
+                setError(error.message);
+                console.error('Error:', error.message);
+                return;
+            }
+            // Transform data into label-value pairs
+            const transformedData = data.map(item => ({
+                label: item.name,
+                value: item.name,
+                id: item.id
+            }));
+            setDataFamily(transformedData);
+        } catch (e) {
+            console.error('Fetch error:', e);
+            setError('Failed to fetch data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteUser = async (id: string) => {
+        Alert.alert(
+            "Konfirmasi Hapus",
+            "Apakah Anda yakin ingin menghapus data ini?",
+            [
+                {
+                    text: "Batal",
+                    onPress: () => console.log("Hapus dibatalkan"),
+                    style: "cancel"
+                },
+                {
+                    text: "Hapus",
+                    onPress: async () => {
+                        const { error, status } = await supabase
+                            .from('sensus')
+                            .delete()
+                            .eq('uuid', id);
+
+                        if (error) {
+                            setError(error.message);
+                            console.error('Error:', error.message);
+                            return;
+                        }
+
+                        if (status === 204) {
+                            handleClear();
+                            Alert.alert('Berhasil', 'Data berhasil dihapus');
+                            fetchSensus(); // Refresh the data
+                        }
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
+    }
+
+    const handleClear = () => {
+        setSearchQuery('');
+        setSettingFilter({
+            grade: { label: '', value: null },
+            family: { label: '', value: null, id: null },
+            marriage: { label: '', value: null },
+        });
+    }
+
+    useFocusEffect(
+        React.useCallback(() => {
+            // if (props.route.params?.refresh) {
+            fetchSensus();
+            fetchDataFamily();
+            // }
+        }, [navigation])
+    );
+    if (loading) {
+        return (
+            <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
+                <ActivityIndicator size="large" color={COLOR_PRIMARY} />
+            </SafeAreaView>
+        );
+    }
+
+    if (error) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text style={styles.errorText}>{error}</Text>
+            </SafeAreaView>
+        );
+    }
+
+    if (!sensus || sensus.length === 0) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text style={styles.emptyText}>No data available.</Text>
+            </SafeAreaView>
+        );
+    }
+
+    const filteredSensus = sensus.filter(item => {
+        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesGrade = settingFilter.grade.value ? item.level === settingFilter.grade.value : true;
+        const matchesFamily = settingFilter.family.id ? item.id_family === settingFilter.family.id : true;
+        const matchesMarriage = settingFilter.marriage.value ? item.marriage_status === settingFilter.marriage.value : true;
+
+        return matchesSearch && matchesGrade && matchesFamily && matchesMarriage;
+    });
+
+
+    const totalPages = Math.ceil(filteredSensus.length / itemsPerPage);
+    const from = page * itemsPerPage;
+    const to = Math.min((page + 1) * itemsPerPage, filteredSensus.length);
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <View style={styles.searchContainer}>
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search by name"
+                    placeholderTextColor={COLOR_TEXT_BODY}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                />
+
+                <TouchableOpacity style={styles.filterButton} onPress={() => setModalVisible(true)} >
+                    <Monicon name="mdi-light:settings" size={30} color={COLOR_WHITE_1} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('CreateUser', { dataFamily: dataFamily || [] })}>
+                    <Monicon name="material-symbols:add" size={30} color={COLOR_WHITE_1} />
+                </TouchableOpacity>
+            </View>
+            <ScrollView horizontal nestedScrollEnabled>
+                <DataTable>
+                    <DataTable.Header>
+                        <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader]}>FULL NAME</DataTable.Title>
+                        <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>GRADE</DataTable.Title>
+                        <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>GENDER</DataTable.Title>
+                        <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>DOB</DataTable.Title>
+                        <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>AGE</DataTable.Title>
+                        <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>STATUS</DataTable.Title>
+                        <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 200 }]}>ACTION</DataTable.Title>
+                    </DataTable.Header>
+                    <ScrollView>
+                        {filteredSensus.slice(from, to).map((item) => (
+                            <DataTable.Row key={item.uuid}>
+                                <DataTable.Cell textStyle={[styles.firstColumn]}>{item.name}</DataTable.Cell>
+                                <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.level}</DataTable.Cell>
+                                <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.gender}</DataTable.Cell>
+                                <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{new Date(item.date_of_birth).toLocaleDateString()}</DataTable.Cell>
+                                <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.age}</DataTable.Cell>
+                                <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.marriage_status}</DataTable.Cell>
+                                <DataTable.Cell textStyle={[styles.textTable, { width: 200 }]}>
+                                    <View style={{ flexDirection: 'row', width: 200, justifyContent: 'center' }}>
+                                        <TouchableOpacity
+                                            style={styles.filterButton}
+                                            onPress={() => navigation.navigate('UpdateUser', { detailUser: item, dataFamily: dataFamily || [] })}>
+                                            <Monicon name="material-symbols:edit-square-outline" size={25} color={COLOR_WHITE_1} />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1 }]}
+                                            onPress={() => handleDeleteUser(item.uuid)}>
+                                            <Monicon name="material-symbols:delete-outline-sharp" size={25} color={COLOR_WHITE_1} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </DataTable.Cell>
+                            </DataTable.Row>
+                        ))}
+                    </ScrollView>
+                </DataTable>
+            </ScrollView>
+            <View style={styles.paginationContainer}>
+                <Text style={styles.paginationText}>
+                    Page {page + 1} of {Math.ceil(filteredSensus.length / itemsPerPage)}
+                </Text>
+                <View style={styles.paginationButtons}>
+                    <Button
+                        disabled={page === 0}
+                        onPress={() => setPage(page - 1)}
+                        textColor={COLOR_PRIMARY}
+                    >
+                        Previous
+                    </Button>
+                    <Button
+                        disabled={page === totalPages - 1}
+                        onPress={() => setPage(page + 1)}
+                        textColor={COLOR_PRIMARY}
+                    >
+                        Next
+                    </Button>
+                </View>
+            </View>
+
+            {/* Modal for Filter Options */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <Text style={styles.modalTitle}>Filter Options</Text>
+                            <TouchableOpacity
+                                style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1 }]}
+                                onPress={() => {
+                                    setSettingFilter({
+                                        grade: { label: '', value: null },
+                                        family: { label: '', value: null, id: null },
+                                        marriage: { label: '', value: null },
+                                    })
+                                }}
+                            >
+                                <Monicon name="tdesign:clear-filled" size={20} color={COLOR_WHITE_2} />
+                            </TouchableOpacity>
+                        </View>
+                        <View>
+                            <Text style={{ color: COLOR_WHITE_1 }}>Dari Keluarga</Text>
+                            <Dropdown
+                                style={[styles.dropdown]}
+                                placeholderStyle={styles.placeholderStyle}
+                                selectedTextStyle={styles.selectedTextStyle}
+                                inputSearchStyle={styles.inputSearchStyle}
+                                containerStyle={{ backgroundColor: COLOR_BG_CARD }}
+                                itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
+                                activeColor={COLOR_PRIMARY}
+                                data={dataFamily || []}
+                                search
+                                maxHeight={300}
+                                labelField="label"
+                                valueField="value"
+                                placeholder={'Pilih Nama Keluarga'}
+                                searchPlaceholder="Search..."
+                                value={settingFilter.family.label}
+                                onFocus={() => setIsFocus(true)}
+                                onBlur={() => setIsFocus(false)}
+                                onChange={item => {
+                                    setSettingFilter({
+                                        ...settingFilter,
+                                        family: item
+                                    });
+                                }}
+                            />
+                            <Text style={{ color: COLOR_WHITE_1 }}>Pilih Jenjang</Text>
+                            <Dropdown
+                                style={[styles.dropdown]}
+                                placeholderStyle={styles.placeholderStyle}
+                                selectedTextStyle={styles.selectedTextStyle}
+                                inputSearchStyle={styles.inputSearchStyle}
+                                iconStyle={styles.iconStyle}
+                                containerStyle={{ backgroundColor: COLOR_BG_CARD }}
+                                itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
+                                activeColor={COLOR_PRIMARY}
+                                data={[
+                                    { label: 'Balita', value: 'Balita' },
+                                    { label: 'Cabe Rawit', value: 'Cabe Rawit' },
+                                    { label: 'Pra Remaja', value: 'Pra Remaja' },
+                                    { label: 'Remaja', value: 'Remaja' },
+                                    { label: 'Pra Nikah', value: 'Pra Nikah' },
+                                    { label: 'Dewasa', value: 'Dewasa' },
+                                ]}
+                                maxHeight={300}
+                                labelField="label"
+                                valueField="value"
+                                placeholder={'Pilih Jenjang'}
+                                value={settingFilter.grade.label}
+                                onFocus={() => setIsFocus(true)}
+                                onBlur={() => setIsFocus(false)}
+                                onChange={item => {
+                                    setSettingFilter({
+                                        ...settingFilter,
+                                        grade: item
+                                    });
+                                }}
+                            />
+                            <Text style={{ color: COLOR_WHITE_1 }}>Pilih Status Pernikahan</Text>
+                            <Dropdown
+                                style={[styles.dropdown]}
+                                placeholderStyle={styles.placeholderStyle}
+                                selectedTextStyle={styles.selectedTextStyle}
+                                inputSearchStyle={styles.inputSearchStyle}
+                                iconStyle={styles.iconStyle}
+                                containerStyle={{ backgroundColor: COLOR_BG_CARD }}
+                                itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
+                                activeColor={COLOR_PRIMARY}
+                                data={[
+                                    { label: 'Belum Menikah', value: 'Belum Menikah' },
+                                    { label: 'Menikah', value: 'Menikah' },
+                                    { label: 'Janda', value: 'Janda' },
+                                    { label: 'Duda', value: 'Duda' },
+                                ]}
+                                maxHeight={300}
+                                labelField="label"
+                                valueField="value"
+                                placeholder={'Pilih Status Pernikahan'}
+                                value={settingFilter.marriage.label}
+                                onFocus={() => setIsFocus(true)}
+                                onBlur={() => setIsFocus(false)}
+                                onChange={item => {
+                                    setSettingFilter({
+                                        ...settingFilter,
+                                        marriage: item
+                                    });
+                                }}
+                            />
+                        </View>
+
+                        <Button onPress={() => setModalVisible(false)} textColor={COLOR_PRIMARY}>Close</Button>
+                    </View>
+                </View>
+            </Modal>
+        </SafeAreaView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: COLOR_BG_CARD,
+        paddingTop: 15,
+    },
+    fab: {
+        // position: 'absolute',
+        // right: 15,
+        // bottom: 60,
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLOR_PRIMARY,
+    },
+    firstColumn: {
+        width: 150,
+        color: COLOR_WHITE_1,
+    },
+    textHeader: {
+        fontWeight: 'bold',
+        fontSize: 18,
+    },
+    textTable: {
+        color: COLOR_WHITE_1,
+        textAlign: 'center',
+    },
+    paginationContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+        backgroundColor: COLOR_BG_CARD,
+    },
+    paginationText: {
+        color: COLOR_WHITE_1,
+    },
+    paginationButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    errorText: {
+        color: 'red',
+        textAlign: 'center',
+        marginTop: 20,
+    },
+    emptyText: {
+        color: COLOR_WHITE_1,
+        textAlign: 'center',
+        marginTop: 20,
+    },
+    searchInput: {
+        height: 40,
+        borderColor: COLOR_WHITE_1,
+        borderWidth: 1,
+        borderRadius: 5,
+        paddingHorizontal: 10,
+        color: COLOR_WHITE_1,
+        flex: 1
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        margin: 16,
+    },
+    filterButton: {
+        marginHorizontal: 10,
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLOR_PRIMARY,
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        width: '80%',
+        backgroundColor: COLOR_BG_CARD,
+        borderRadius: 10,
+        padding: 20,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 10,
+        color: COLOR_WHITE_1
+    },
+
+    dropdown: {
+        height: 40,
+        borderColor: 'gray',
+        borderWidth: 0.5,
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        marginBottom: 10,
+        marginTop: 5,
+    },
+    icon: {
+        marginRight: 5,
+    },
+    placeholderStyle: {
+        fontSize: 13,
+        color: COLOR_TEXT_BODY
+    },
+    selectedTextStyle: {
+        fontSize: 13,
+        color: COLOR_WHITE_1
+    },
+    iconStyle: {
+        width: 20,
+        height: 20,
+    },
+    inputSearchStyle: {
+        height: 40,
+        fontSize: 13,
+        color: COLOR_WHITE_1
+    },
+});
+
+export default SensusScreen;
