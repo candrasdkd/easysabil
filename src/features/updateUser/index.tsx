@@ -4,7 +4,7 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { DataFamily, DataSensus } from '../../types';
 import { COLOR_BG_CARD, COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1 } from '../../utils/constant';
-import { Button, } from 'react-native-paper';
+import { Button, Switch, } from 'react-native-paper';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { supabase } from '../../config';
 import { ios } from '../../utils/helper';
@@ -21,6 +21,7 @@ const UpdateUser = () => {
     const [showCalendar, setShowCalendar] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [bodyUser, setBodyUser] = useState({
+        active: detailUser.is_active,
         fullname: detailUser.name,
         dob: detailUser.date_of_birth ? detailUser.date_of_birth : '',
         gender: { label: detailUser.gender, value: detailUser.gender },
@@ -49,6 +50,7 @@ const UpdateUser = () => {
                 marriage_status: bodyUser.marriage.value,
                 id_family: bodyUser.family.id,
                 family_name: bodyUser.family.label,
+                is_active: bodyUser.active,
             };
 
             const { error } = await supabase.from('sensus').update(transformBody).eq('uuid', id);
@@ -75,6 +77,14 @@ const UpdateUser = () => {
     return (
         <View style={{ flex: 1 }}>
             <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: ios ? 20 : 0, paddingTop: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Aktif?</Text>
+                    <Switch
+                        color={COLOR_PRIMARY}
+                        value={bodyUser.active}
+                        onValueChange={() => setBodyUser({ ...bodyUser, active: !bodyUser.active })}
+                    />
+                </View>
                 <Text style={{ color: COLOR_WHITE_1 }}>Dari Keluarga</Text>
                 <Dropdown
                     disable={uploading}

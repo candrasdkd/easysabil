@@ -457,7 +457,7 @@ const ListOrderScreen = () => {
                     <Button
                         // disabled={uploading}
                         mode='contained'
-                        style={{ backgroundColor: COLOR_PRIMARY, marginHorizontal: 20, marginBottom: 20 }}
+                        style={{ backgroundColor: COLOR_PRIMARY, marginHorizontal: 20 }}
                         textColor={COLOR_WHITE_1}
                         onPress={() => navigation.goBack()}>
                         <Text>Tampilkan Perhitungan</Text>

@@ -10,6 +10,7 @@ export interface DataSensus {
     marriage_status: MarriageStatus;
     family_name: string;
     id_family: number;
+    is_active: boolean;
 }
 
 export interface DataOrder {
