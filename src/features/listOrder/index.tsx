@@ -8,6 +8,7 @@ import { Monicon } from "@monicon/native";
 import { Dropdown } from 'react-native-element-dropdown';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { formatRupiah, ios } from '../../utils/helper';
+import BaseScreen from '../../components/BaseScreen';
 
 
 const ListOrderScreen = () => {
@@ -20,7 +21,7 @@ const ListOrderScreen = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(0);
-    const [itemsPerPage, setItemsPerPage] = useState(20);
+    const [itemsPerPage, setItemsPerPage] = useState(50);
     const [searchQuery, setSearchQuery] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalCreate, setModalCreate] = useState(false);
@@ -36,11 +37,11 @@ const ListOrderScreen = () => {
         category: { label: '', value: '', id: '', name: '', price: '' },
         totalOrder: '',
     })
-    const [actualPrice, setActualPrice] = useState('0');
+    const [actualPrice, setActualPrice] = useState('');
     const [isExactChange, setIsExactChange] = useState(false);
     const [detailData, setDetailData] = useState({
         id: 0,
-        price: '0',
+        price: '',
         status: false
     });
 
@@ -54,12 +55,12 @@ const ListOrderScreen = () => {
                     .from('data_order')
                     .select('*')
                     .eq('id_category_order', settingFilter.category.id)
-                    .order('user_name', { ascending: true });
+                    .order('created_at', { ascending: false });
             } else {
                 response = await supabase
                     .from('data_order')
                     .select('*')
-                    .order('user_name', { ascending: true });
+                    .order('created_at', { ascending: false });
             }
 
             const { data, error } = response;
@@ -138,7 +139,10 @@ const ListOrderScreen = () => {
             setUploading(true);
             const selectionPrice = isExactChange ? detailData.price : actualPrice;
             const numericPrice = parseInt(selectionPrice.replace(/[^0-9]/g, ''), 10) || 0; // Convert to number
-
+            if (numericPrice === 0 || numericPrice === null) {
+                Alert.alert('Info', 'Masukkan uang yang diterima');
+                return;
+            }
             const transformBody = {
                 actual_price: numericPrice,
                 is_payment: !detailData?.status,
@@ -153,6 +157,7 @@ const ListOrderScreen = () => {
             if (status === 200) {
                 Alert.alert('Berhasil', 'Data berhasil dibuat');
                 fetchDataOrder();
+                handleResetPayment()
             } else {
                 Alert.alert('Error', error?.message || 'Terjadi kesalahan saat menyimpan data.');
             }
@@ -160,7 +165,6 @@ const ListOrderScreen = () => {
             Alert.alert('Error', e.message);
         } finally {
             setUploading(false);
-            handleResetPayment()
         }
     };
 
@@ -303,20 +307,20 @@ const ListOrderScreen = () => {
     const renderContent = () => {
         if (loading) {
             return (
-                <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
+                <View style={{ flex: 1, justifyContent: 'center' }}>
                     <ActivityIndicator size="large" color={COLOR_PRIMARY} />
-                </SafeAreaView>
+                </View>
             );
         }
         if (error) {
             return (
-                <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
+                <View style={{ flex: 1, justifyContent: 'center' }}>
                     <Text style={styles.errorText}>{error}</Text>
-                </SafeAreaView>
+                </View>
             );
         }
         return (
-            <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
+            <>
                 {!dataOrder || dataOrder.length === 0 ?
                     <View style={{ flex: 1, justifyContent: 'center' }}>
                         <Text style={styles.emptyText}>No data available.</Text>
@@ -363,12 +367,17 @@ const ListOrderScreen = () => {
                                                         style={{ justifyContent: 'center', alignItems: 'center' }}
                                                         // onPress={() => handleUpdateOrder(item.id, item.is_payment)}
                                                         onPress={() => {
-                                                            setDetailData({
-                                                                id: item.id,
-                                                                price: formatRupiah(totalPrice(item.unit_price, item.total_order)),
-                                                                status: item.is_payment
-                                                            })
-                                                            setModalVisible(!modalVisible)
+                                                            if (item.is_payment) {
+                                                                Alert.alert('Info', 'Pembayaran sudah lunas')
+                                                            } else {
+                                                                setDetailData({
+                                                                    id: item.id,
+                                                                    price: formatRupiah(totalPrice(item.unit_price, item.total_order)),
+                                                                    status: item.is_payment
+                                                                })
+                                                                setModalVisible(!modalVisible)
+                                                            }
+
                                                         }}
                                                     >
                                                         {item.is_payment ?
@@ -426,17 +435,24 @@ const ListOrderScreen = () => {
                                 </Button>
                             </View>
                         </View>
+                        <Button
+                            // disabled={uploading}
+                            mode='contained'
+                            style={{ backgroundColor: COLOR_PRIMARY, marginHorizontal: 20 }}
+                            textColor={COLOR_WHITE_1}
+                            onPress={() => Alert.alert('Info','Sedang tahap pengembangan')}>
+                            <Text>Tampilkan Perhitungan</Text>
+                        </Button>
                     </>
                 }
-            </SafeAreaView>
+            </>
         )
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <BaseScreen>
             {settingFilter.category.id || showAllData ?
                 <>
-                    <Text style={{ color: 'red', fontSize: 10, marginLeft: 20, marginTop: 10 }}>*Untuk menampilkan harga satuan harap pilih kategori di filter</Text>
                     <View style={styles.searchContainer}>
                         <TextInput
                             style={styles.searchInput}
@@ -454,14 +470,7 @@ const ListOrderScreen = () => {
                         </TouchableOpacity>
                     </View>
                     {renderContent()}
-                    <Button
-                        // disabled={uploading}
-                        mode='contained'
-                        style={{ backgroundColor: COLOR_PRIMARY, marginHorizontal: 20 }}
-                        textColor={COLOR_WHITE_1}
-                        onPress={() => navigation.goBack()}>
-                        <Text>Tampilkan Perhitungan</Text>
-                    </Button>
+
                 </>
 
                 :
@@ -532,9 +541,9 @@ const ListOrderScreen = () => {
                             <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Total Uang Yang Diterima</Text>
                             <TextInput
                                 editable={!isExactChange}
-                                defaultValue={isExactChange ? detailData.price : formatRupiah(actualPrice)}
+                                defaultValue={isExactChange ? detailData.price : actualPrice ? formatRupiah(actualPrice) : actualPrice}
                                 style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: isExactChange ? 'gray' : '' }]}
-                                placeholder='Masukkan harga satuan'
+                                placeholder='Masukkan uang yang diterima'
                                 placeholderTextColor={COLOR_WHITE_1}
                                 keyboardType='number-pad'
                                 onChangeText={(e) => setActualPrice(e)}
@@ -579,7 +588,7 @@ const ListOrderScreen = () => {
                                     <Text style={styles.modalTitle}>TAMBAH DATA</Text>
                                 </View>
                                 <View>
-                                    <Text style={{ color: COLOR_WHITE_1 }}>Pilih Nama Ja'maah</Text>
+                                    <Text style={{ color: COLOR_WHITE_1 }}>Pilih Nama yang Memesan</Text>
                                     <Dropdown
                                         disable={uploading}
                                         style={[styles.dropdown]}
@@ -594,7 +603,7 @@ const ListOrderScreen = () => {
                                         maxHeight={300}
                                         labelField="label"
                                         valueField="value"
-                                        placeholder={`Pilih Nama Jama'ah`}
+                                        placeholder={`Pilih Nama`}
                                         searchPlaceholder="Search..."
                                         value={dataUpload.user?.label}
                                         onFocus={fetchSensus}
@@ -778,16 +787,11 @@ const ListOrderScreen = () => {
             {/* </View> */}
 
 
-        </SafeAreaView >
+        </BaseScreen >
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: COLOR_BG_CARD,
-        paddingTop: 15,
-    },
     fab: {
         // position: 'absolute',
         // right: 15,

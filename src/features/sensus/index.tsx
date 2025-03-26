@@ -8,6 +8,7 @@ import { Monicon } from "@monicon/native";
 import { Dropdown } from 'react-native-element-dropdown';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import BaseScreen from '../../components/BaseScreen';
 
 type RootStackParamList = {
     CreateUser: { dataFamily: DataFamily[] | null };
@@ -152,7 +153,7 @@ const SensusScreen = () => {
     const renderContent = () => {
         if (loading) {
             return (
-                <View style={[styles.container, { justifyContent: 'center' }]}>
+                <View style={{ flex: 1, justifyContent: 'center' }}>
                     <ActivityIndicator size="large" color={COLOR_PRIMARY} />
                 </View>
             );
@@ -160,7 +161,7 @@ const SensusScreen = () => {
 
         if (error) {
             return (
-                <View style={styles.container}>
+                <View style={{ flex: 1, justifyContent: 'center' }}>
                     <Text style={styles.errorText}>{error}</Text>
                 </View>
             );
@@ -168,7 +169,7 @@ const SensusScreen = () => {
 
         if (!sensus || sensus.length === 0) {
             return (
-                <View style={styles.container}>
+                <View style={{ flex: 1, justifyContent: 'center' }}>
                     <Text style={styles.emptyText}>No data available.</Text>
                 </View>
             );
@@ -241,7 +242,7 @@ const SensusScreen = () => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <BaseScreen>
             <View style={styles.searchContainer}>
                 <TextInput
                     style={styles.searchInput}
@@ -400,16 +401,11 @@ const SensusScreen = () => {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
+        </BaseScreen>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: COLOR_BG_CARD,
-        paddingTop: 15,
-    },
     fab: {
         // position: 'absolute',
         // right: 15,

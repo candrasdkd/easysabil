@@ -30,6 +30,7 @@ declare module "@monicon/icon-loader" {
 	| "material-symbols:filter-alt"
 	| "mdi:checkbox-blank-circle-outline"
 	| "mdi:checkbox-marked-circle"
+	| "material-symbols:content-copy"
 	| "radix-icons:accessibility"
 	| "radix-icons:activity-log"
 	| "radix-icons:align-baseline"

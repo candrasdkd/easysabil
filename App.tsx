@@ -17,6 +17,7 @@ import CreateUserScreen from './src/features/createUser';
 import UpdateUserScreen from './src/features/updateUser';
 import CategoryOrderScreen from './src/features/categoryOrder';
 import ListOrderScreen from './src/features/listOrder';
+import ListFamilyScreen from './src/features/listFamily';
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -65,14 +66,19 @@ function App(): React.JSX.Element {
             options={{ title: 'Data Sensus' }}
           />
            <Drawer.Screen
-            name="Order"
+            name="ListOrder"
             component={ListOrderScreen}
             options={{ title: 'Daftar Pesanan' }}
           />
           <Drawer.Screen
-            name="Category"
+            name="CategoryOrder"
             component={CategoryOrderScreen}
             options={{ title: 'Kategori Pesanan' }}
+          />
+           <Drawer.Screen
+            name="ListFamily"
+            component={ListFamilyScreen}
+            options={{ title: 'Daftar Keluarga' }}
           />
         </Drawer.Navigator>
       </NavigationContainer>

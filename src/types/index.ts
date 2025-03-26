@@ -37,6 +37,8 @@ export interface DataDropdown {
     value: number;
     label: string;
     id?: string;
+    price?: string;
+    name?: string;
 }[]
 
 export interface DataCategory {

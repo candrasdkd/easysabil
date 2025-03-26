@@ -8,6 +8,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { DataCategory, DataFamily, DataFolder } from '../../types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatRupiah, ios } from '../../utils/helper';
+import BaseScreen from '../../components/BaseScreen';
 
 type RootStackParamList = {
     CreateCategoryOrder: { dataFamily: DataFamily[] | null };
@@ -217,9 +218,9 @@ const CategoryOrder = () => {
     }, [searchQuery, dataFolder]);
 
     return (
-        <View style={{ flex: 1, padding: 20, backgroundColor: COLOR_BG_CARD }}>
+        <BaseScreen>
             {/* Search Input */}
-            <View style={{ height: 40, marginBottom: 15 }}>
+            <View style={{ height: 40, marginVertical: 15, marginHorizontal: 20 }}>
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Cari nama kategori..."
@@ -231,10 +232,10 @@ const CategoryOrder = () => {
 
             {/* List Data */}
             {loading ?
-
                 <FlatList
                     data={dummyData}
                     keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={{ paddingHorizontal: 20 }}
                     renderItem={({ item }) => (
                         <TouchableOpacity style={{ marginBottom: 10 }}>
                             <Card.Title
@@ -260,6 +261,7 @@ const CategoryOrder = () => {
                 <FlatList
                     data={filteredData || []}
                     keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={{ paddingHorizontal: 20 }}
                     renderItem={({ item }) => (
                         <View style={{ marginBottom: 10 }}>
                             <Card.Title
@@ -454,7 +456,7 @@ const CategoryOrder = () => {
             <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(!modalVisible)}>
                 <Monicon name="material-symbols:add" size={30} color={COLOR_WHITE_1} />
             </TouchableOpacity>
-        </View >
+        </BaseScreen >
     );
 }
 
@@ -487,8 +489,8 @@ const styles = StyleSheet.create({
     },
     addButton: {
         position: 'absolute',
-        bottom: 20,
-        right: 20,
+        bottom: 25,
+        right: 25,
         width: 50,
         height: 50,
         borderRadius: 50,

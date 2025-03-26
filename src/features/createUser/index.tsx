@@ -363,6 +363,7 @@ const CreateUser = () => {
                     // disabled={uploading}
                     mode='contained'
                     style={{ flex: 0.42 }}
+                    textColor={COLOR_WHITE_1}
                     buttonColor={uploading ? COLOR_TEXT_BODY : COLOR_PRIMARY}
                     onPress={() => !uploading ? handleSubmitUser() : null}>
                     <Text>Submit</Text>

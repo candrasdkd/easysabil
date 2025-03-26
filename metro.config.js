@@ -31,7 +31,8 @@ const configWithMonicon = withMonicon(config, {
     "material-symbols:check-box-rounded",
     "material-symbols:filter-alt",
     "mdi:checkbox-blank-circle-outline",
-    "mdi:checkbox-marked-circle"
+    "mdi:checkbox-marked-circle",
+    "material-symbols:content-copy"
 
   ],
   // Load all icons from the listed collections

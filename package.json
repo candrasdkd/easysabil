@@ -10,9 +10,11 @@
     "test": "jest"
   },
   "dependencies": {
+    "@gorhom/bottom-sheet": "^5.1.2",
     "@monicon/metro": "^1.2.2",
     "@monicon/native": "^1.2.2",
     "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-clipboard/clipboard": "^1.16.2",
     "@react-native-community/cli-doctor": "^17.0.0",
     "@react-native-vector-icons/common": "^11.0.0",
     "@react-native-vector-icons/fontawesome6": "^6.7.1",
