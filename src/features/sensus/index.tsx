@@ -24,7 +24,7 @@ const SensusScreen = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(0);
-    const [itemsPerPage, setItemsPerPage] = useState(25);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [searchQuery, setSearchQuery] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [settingFilter, setSettingFilter] = useState({
@@ -167,7 +167,7 @@ const SensusScreen = () => {
             );
         }
 
-        if (!sensus || sensus.length === 0) {
+        if (!filteredSensus || filteredSensus.length === 0) {
             return (
                 <View style={{ flex: 1, justifyContent: 'center' }}>
                     <Text style={styles.emptyText}>No data available.</Text>
@@ -175,29 +175,40 @@ const SensusScreen = () => {
             );
         }
         return (
-            <>
-                <ScrollView horizontal nestedScrollEnabled>
-                    <DataTable>
+            <View style={{ flex: 1 }}>
+                <DataTable style={{ flexDirection: 'row', flex: 1 }}>
+                    <View style={{ position: 'relative', width: 150 }}>
                         <DataTable.Header>
-                            <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader]}>FULL NAME</DataTable.Title>
-                            <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>GRADE</DataTable.Title>
-                            <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>GENDER</DataTable.Title>
-                            <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>DOB</DataTable.Title>
-                            <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>AGE</DataTable.Title>
-                            <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>STATUS</DataTable.Title>
-                            <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 200 }]}>ACTION</DataTable.Title>
+                            <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader]}>NAME</DataTable.Title>
                         </DataTable.Header>
-                        <ScrollView>
+                        {filteredSensus.slice(from, to).map((item) => (
+                            <DataTable.Row key={item.uuid}>
+                                <DataTable.Cell textStyle={[styles.firstColumn, { width: 120 }]}>{item.name}</DataTable.Cell>
+                            </DataTable.Row>
+                        ))}
+                    </View>
+
+                    <ScrollView horizontal nestedScrollEnabled>
+                        <View>
+                            <DataTable.Header>
+                                {/* <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader]}>NAME</DataTable.Title> */}
+                                <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>GRADE</DataTable.Title>
+                                <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>GENDER</DataTable.Title>
+                                <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>DOB</DataTable.Title>
+                                <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>AGE</DataTable.Title>
+                                <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>STATUS</DataTable.Title>
+                                <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 150 }]}>ACTION</DataTable.Title>
+                            </DataTable.Header>
                             {filteredSensus.slice(from, to).map((item) => (
                                 <DataTable.Row key={item.uuid}>
-                                    <DataTable.Cell textStyle={[styles.firstColumn]}>{item.name}</DataTable.Cell>
+                                    {/* <DataTable.Cell textStyle={[styles.firstColumn]}>{item.name}</DataTable.Cell> */}
                                     <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.level}</DataTable.Cell>
                                     <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.gender}</DataTable.Cell>
                                     <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{new Date(item.date_of_birth).toLocaleDateString()}</DataTable.Cell>
                                     <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.age}</DataTable.Cell>
                                     <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.marriage_status}</DataTable.Cell>
-                                    <DataTable.Cell textStyle={[styles.textTable, { width: 200 }]}>
-                                        <View style={{ flexDirection: 'row', width: 200, justifyContent: 'center' }}>
+                                    <DataTable.Cell textStyle={[styles.textTable, { width: 150 }]}>
+                                        <View style={{ flexDirection: 'row', width: 150, justifyContent: 'center' }}>
                                             <TouchableOpacity
                                                 style={styles.filterButton}
                                                 onPress={() => navigation.navigate('UpdateUser', { detailUser: item, dataFamily: dataFamily || [] })}>
@@ -212,9 +223,10 @@ const SensusScreen = () => {
                                     </DataTable.Cell>
                                 </DataTable.Row>
                             ))}
-                        </ScrollView>
-                    </DataTable>
-                </ScrollView>
+                        </View>
+                    </ScrollView>
+                </DataTable>
+
                 <View style={styles.paginationContainer}>
                     <Text style={styles.paginationText}>
                         Page {page + 1} of {Math.ceil(filteredSensus.length / itemsPerPage)}
@@ -222,21 +234,21 @@ const SensusScreen = () => {
                     <View style={styles.paginationButtons}>
                         <Button
                             disabled={page === 0}
-                            onPress={() => setPage(page - 1)}
+                            onPress={() => page === 0 ? null : setPage(page - 1)}
                             textColor={COLOR_PRIMARY}
                         >
                             Previous
                         </Button>
                         <Button
-                            disabled={page === totalPages - 1}
-                            onPress={() => setPage(page + 1)}
+                            disabled={page + 1 >= totalPages}
+                            onPress={() => page + 1 >= totalPages ? null : setPage(page + 1)}
                             textColor={COLOR_PRIMARY}
                         >
                             Next
                         </Button>
                     </View>
                 </View>
-            </>
+            </View>
 
         )
     }
@@ -249,7 +261,10 @@ const SensusScreen = () => {
                     placeholder="Search by name"
                     placeholderTextColor={COLOR_TEXT_BODY}
                     value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    onChangeText={(e) => {
+                        setPage(0)
+                        setSearchQuery(e)
+                    }}
                 />
 
                 <TouchableOpacity style={styles.filterButton} onPress={() => setModalVisible(true)} >
@@ -282,6 +297,7 @@ const SensusScreen = () => {
                                         marriage: { label: '', value: null },
                                         user_active: true,
                                     })
+                                    setPage(0)
                                 }}
                             >
                                 <Monicon name="tdesign:clear-filled" size={20} color={COLOR_WHITE_2} />
@@ -397,7 +413,15 @@ const SensusScreen = () => {
                             </View>
                         </View>
 
-                        <Button onPress={() => setModalVisible(false)} textColor={COLOR_PRIMARY}>Close</Button>
+                        <Button
+                            textColor={COLOR_PRIMARY}
+                            onPress={() => {
+                                setModalVisible(false)
+                                setPage(0)
+                            }}
+                        >
+                            Close
+                        </Button>
                     </View>
                 </View>
             </Modal>

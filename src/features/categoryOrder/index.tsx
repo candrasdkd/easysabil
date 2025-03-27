@@ -381,6 +381,7 @@ const CategoryOrder = () => {
                                         loading={uploading}
                                         mode="contained"
                                         style={{ flex: 0.45 }}
+                                        textColor={COLOR_WHITE_1}
                                         buttonColor={uploading ? COLOR_TEXT_BODY : COLOR_PRIMARY}
                                         onPress={modalUpdate ? handleUpdateOrder : handleSubmitOrder}
                                     >
@@ -392,65 +393,6 @@ const CategoryOrder = () => {
                     </KeyboardAvoidingView>
                 </View>
             </Modal>
-
-
-            {/* Modal for Update Category Order */}
-            {/* <Modal
-                animationType="fade"
-                transparent={true}
-                visible={modalUpdate}
-                onRequestClose={() => setModalUpdate(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Update Data</Text>
-                        <Text style={{ color: COLOR_WHITE_1 }}>Kategori</Text>
-                        <TextInput
-                            editable={!uploading}
-                            defaultValue={bodyUser.category ? bodyUser.category : detailData.name}
-                            style={[styles.dropdown, { color: COLOR_WHITE_1 }]}
-                            placeholder='Masukkan nama kategori'
-                            placeholderTextColor={COLOR_WHITE_1}
-                            onChangeText={(e) => setBodyUser({ ...bodyUser, category: e })}
-                        />
-                        <Text style={{ color: COLOR_WHITE_1 }}>Harga (pcs)</Text>
-                        <TextInput
-                            editable={!uploading}
-                            value={bodyUser.price ? formatRupiah(bodyUser.price) : detailData.price}
-                            style={[styles.dropdown, { color: COLOR_WHITE_1 }]}
-                            placeholder='Masukkan harga satuan'
-                            placeholderTextColor={COLOR_WHITE_1}
-                            keyboardType='number-pad'
-                            onChangeText={handlePriceChange}
-                        />
-                        <Text style={{ color: COLOR_WHITE_1 }}>Tahun</Text>
-                        <TextInput
-                            editable={false}
-                            value={today.getFullYear().toString()}
-                            style={[styles.dropdown, { color: COLOR_TEXT_BODY, backgroundColor: 'gray' }]}
-                        />
-
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginTop: 20 }}>
-                            <Button
-                                loading={uploading}
-                                mode='outlined'
-                                style={{ flex: 0.45, borderColor: uploading ? COLOR_TEXT_BODY : COLOR_PRIMARY }}
-                                textColor={uploading ? COLOR_TEXT_BODY : COLOR_PRIMARY}
-                                onPress={handleClearClose}>
-                                <Text>Tutup</Text>
-                            </Button>
-                            <Button
-                                loading={uploading}
-                                mode='contained'
-                                style={{ flex: 0.45 }}
-                                buttonColor={uploading ? COLOR_TEXT_BODY : COLOR_PRIMARY}
-                                onPress={handleUpdateOrder}>
-                                <Text>Update</Text>
-                            </Button>
-                        </View>
-                    </View>
-                </View>
-            </Modal> */}
 
             {/* Add Button */}
             <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(!modalVisible)}>

@@ -1,7 +1,7 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 import React from 'react'
 import { Card, Title } from 'react-native-paper'
-import { COLOR_BG_CARD, COLOR_PRIMARY, COLOR_TEXT_BODY } from '../../../utils/constant';
+import { COLOR_BG_CARD, COLOR_PRIMARY, COLOR_TEXT_BODY } from '../utils/constant';
 
 interface CardProps {
     title: string;

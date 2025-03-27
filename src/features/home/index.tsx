@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, View, Text, StatusBar, TouchableOpacity, Alert } from 'react-native';
 import { supabase } from '../../config';
-import CardComponent from './component/card';
+import CardComponent from '../../components/Card';
 import { ios } from '../../utils/helper';
 import { useNavigation } from '@react-navigation/native';
 import Monicon from '@monicon/native';
@@ -35,6 +35,8 @@ const HomeScreen = () => {
     totalMen: number;
     totalWomen: number;
     totalMarriage: number;
+    totalWidower: number;
+    totalWidow: number;
   }>({
     totalUsers: 0,
     totalAdult: 0,
@@ -58,6 +60,8 @@ const HomeScreen = () => {
     totalMen: 0,
     totalWomen: 0,
     totalMarriage: 0,
+    totalWidower: 0,
+    totalWidow: 0,
   })
 
   const copyHeader = async () => {
@@ -96,7 +100,12 @@ const HomeScreen = () => {
 ━━━━━━━━━━━━━━━━━━━━━
 👨 Laki-laki: ${count.totalMen} orang
 👩 Perempuan: ${count.totalWomen} orang
-💑 Status Menikah: ${count.totalMarriage} orang
+
+💑 Status Pernikahan:
+━━━━━━━━━━━━━━━━━━━━━
+👫 Menikah: ${count.totalMarriage} orang
+👨 Duda: ${count.totalWidower} orang
+👩 Janda: ${count.totalWidow} orang
 `;
     Clipboard.default.setString(headerString);
     Alert.alert('Info', 'Data berhasil di copy')
@@ -141,6 +150,8 @@ const HomeScreen = () => {
             totalMen: data.filter(item => item.gender === 'Laki - Laki').length,
             totalWomen: data.filter(item => item.gender === 'Perempuan').length,
             totalMarriage: data.filter(item => item.marriage_status === 'Menikah').length,
+            totalWidower: data.filter(item => item.marriage_status === 'Duda').length,
+            totalWidow: data.filter(item => item.marriage_status === 'Janda').length,
           };
           setCount(counts);
         }
@@ -229,6 +240,19 @@ const HomeScreen = () => {
           <CardComponent
             title='Perempuan'
             count={count.totalWomen}
+            loading={loading}
+          />
+        </View>
+        {/* SECTION 5 */}
+        <View style={styles.row}>
+          <CardComponent
+            title='Duda'
+            count={count.totalWidower}
+            loading={loading}
+          />
+          <CardComponent
+            title='Janda'
+            count={count.totalWidow}
             loading={loading}
           />
         </View>

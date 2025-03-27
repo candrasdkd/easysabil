@@ -21,21 +21,25 @@ const ListOrderScreen = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(0);
-    const [itemsPerPage, setItemsPerPage] = useState(50);
+    const [itemsPerPage, setItemsPerPage] = useState(15);
     const [searchQuery, setSearchQuery] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalCreate, setModalCreate] = useState(false);
     const [modalFilter, setModalFilter] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [showAllData, setShowAllData] = useState(false);
+    const [modalUpdate, setModalUpdate] = useState(false);
+    const [hidePrice, setHidePrice] = useState(false);
     const [settingFilter, setSettingFilter] = useState({
         category: { label: '', value: '', id: '', name: '', price: '' },
         isPayment: null as boolean | null
     });
     const [dataUpload, setDataUpload] = useState({
+        idCard: null as number | null,
         user: { label: '', value: '', uuid: '' },
         category: { label: '', value: '', id: '', name: '', price: '' },
         totalOrder: '',
+        note: ''
     })
     const [actualPrice, setActualPrice] = useState('');
     const [isExactChange, setIsExactChange] = useState(false);
@@ -96,7 +100,6 @@ const ListOrderScreen = () => {
                 return;
             }
             const transformedData = data.map(item => ({
-                ...item,
                 label: item.name,
                 value: item.name,
                 id: item.uuid
@@ -177,28 +180,40 @@ const ListOrderScreen = () => {
                 Alert.alert('Info', 'Semua field harus diisi');
                 return;
             }
-
-            setUploading(true);
             const transformBody = {
                 user_name: dataUpload?.user.value,
                 user_id: dataUpload.user?.uuid,
                 id_category_order: parseInt(dataUpload?.category.id),
                 name_category: dataUpload?.category.name,
                 total_order: parseInt(dataUpload.totalOrder),
-                unit_price: parseInt(dataUpload?.category.price)
+                unit_price: parseInt(dataUpload?.category.price),
+                note: dataUpload?.note
             };
+            setUploading(true);
+            if (modalUpdate) {
+                const { error, status } = await supabase
+                    .from('data_order')
+                    .update(transformBody)
+                    .eq('id', dataUpload.idCard)
+                    .select();
 
-
-            const { error, status } = await supabase
-                .from('data_order')
-                .insert([transformBody])
-                .select();
-
-            if (status === 201) {
-                Alert.alert('Berhasil', 'Data berhasil dibuat');
-                fetchDataOrder();
+                if (status === 200) {
+                    Alert.alert('Berhasil', 'Data berhasil diupdate');
+                    fetchDataOrder();
+                } else {
+                    Alert.alert('Error', error?.message || 'Terjadi kesalahan saat menyimpan data.');
+                }
             } else {
-                Alert.alert('Error', error?.message || 'Terjadi kesalahan saat menyimpan data.');
+                const { error, status } = await supabase
+                    .from('data_order')
+                    .insert([transformBody])
+                    .select();
+                if (status === 201) {
+                    Alert.alert('Berhasil', 'Data berhasil dibuat');
+                    fetchDataOrder();
+                } else {
+                    Alert.alert('Error', error?.message || 'Terjadi kesalahan saat menyimpan data.');
+                }
             }
         } catch (e: any) {
             Alert.alert('Error', e.message);
@@ -267,12 +282,15 @@ const ListOrderScreen = () => {
 
     const handleResetUpload = () => {
         setDataUpload({
+            idCard: null,
             user: { label: '', value: '', uuid: '' },
             category: { label: '', value: '', id: '', name: '', price: '' },
             totalOrder: '',
+            note: ''
         });
         setIsExactChange(false);
-        setModalCreate(!modalCreate);
+        setModalUpdate(false);
+        setModalCreate(false);
     }
 
     useFocusEffect(
@@ -281,11 +299,10 @@ const ListOrderScreen = () => {
             if (settingFilter.category.id || showAllData) {
                 fetchDataOrder();
             }
-            // fetchSensus();
+            fetchSensus();
             // }
         }, [navigation, settingFilter.category.id, showAllData])
     );
-
 
     const filteredOrder = dataOrder.filter(item => {
         const matchesSearch = item.user_name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -319,9 +336,12 @@ const ListOrderScreen = () => {
                 </View>
             );
         }
+        console.log(dataDropdownSensus);
+
+        console.log(dataUpload);
         return (
             <>
-                {!dataOrder || dataOrder.length === 0 ?
+                {!filteredOrder || filteredOrder.length === 0 ?
                     <View style={{ flex: 1, justifyContent: 'center' }}>
                         <Text style={styles.emptyText}>No data available.</Text>
                     </View> :
@@ -338,25 +358,30 @@ const ListOrderScreen = () => {
                                     <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader]}>NAMA</DataTable.Title>
                                     <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader]}>KATEGORI</DataTable.Title>
                                     <DataTable.Title textStyle={[styles.textHeader, { width: 80 }]}>JUMLAH</DataTable.Title>
-                                    <DataTable.Title textStyle={[styles.textHeader, { width: 100 }]}>
-                                        <View style={{ justifyContent: 'center', width: '100%' }}>
-                                            <Text style={styles.textHeader}>HARGA</Text>
-                                            <Text style={styles.textHeader}>SATUAN</Text>
-                                        </View>
-                                    </DataTable.Title>
-                                    <DataTable.Title textStyle={[styles.textHeader, { width: 100 }]}>
-                                        <View style={{ justifyContent: 'center', width: '100%' }}>
-                                            <Text style={styles.textHeader}>TOTAL</Text>
-                                            <Text style={styles.textHeader}>HARGA</Text>
-                                        </View>
-                                    </DataTable.Title>
-                                    <DataTable.Title textStyle={[styles.textHeader, { width: 100 }]}>
-                                        <View style={{ justifyContent: 'center', width: '100%' }}>
-                                            <Text style={styles.textHeader}>UANG</Text>
-                                            <Text style={styles.textHeader}>YG DITERIMA</Text>
-                                        </View>
-                                    </DataTable.Title>
-                                    <DataTable.Title textStyle={[styles.textHeader, { width: 200 }]}>ACTION</DataTable.Title>
+                                    {!hidePrice &&
+                                        <>
+                                            <DataTable.Title textStyle={[styles.textHeader, { width: 100 }]}>
+                                                <View style={{ justifyContent: 'center', width: '100%' }}>
+                                                    <Text style={styles.textHeader}>HARGA</Text>
+                                                    <Text style={styles.textHeader}>SATUAN</Text>
+                                                </View>
+                                            </DataTable.Title>
+                                            <DataTable.Title textStyle={[styles.textHeader, { width: 100 }]}>
+                                                <View style={{ justifyContent: 'center', width: '100%' }}>
+                                                    <Text style={styles.textHeader}>TOTAL</Text>
+                                                    <Text style={styles.textHeader}>HARGA</Text>
+                                                </View>
+                                            </DataTable.Title>
+                                            <DataTable.Title textStyle={[styles.textHeader, { width: 100 }]}>
+                                                <View style={{ justifyContent: 'center', width: '100%' }}>
+                                                    <Text style={styles.textHeader}>UANG</Text>
+                                                    <Text style={styles.textHeader}>YG DITERIMA</Text>
+                                                </View>
+                                            </DataTable.Title>
+                                        </>
+                                    }
+                                    <DataTable.Title textStyle={[styles.textHeader, { width: 80 }]}>CATATAN</DataTable.Title>
+                                    <DataTable.Title textStyle={[styles.textHeader, { width: 120 }]}>ACTION</DataTable.Title>
                                 </DataTable.Header>
                                 <ScrollView>
                                     {filteredOrder.slice(from, to).map((item) => (
@@ -387,17 +412,46 @@ const ListOrderScreen = () => {
                                                     </TouchableOpacity>
                                                 </View>
                                             </DataTable.Cell>
-                                            <DataTable.Cell textStyle={[styles.firstColumn]}>{item.user_name}</DataTable.Cell>
+                                            <DataTable.Cell textStyle={[styles.firstColumn, { paddingLeft: 15 }]}>{item.user_name}</DataTable.Cell>
                                             <DataTable.Cell textStyle={[styles.firstColumn, { textAlign: 'center' }]}>{item.name_category}</DataTable.Cell>
                                             <DataTable.Cell textStyle={[styles.textTable, { width: 80 }]}>{item.total_order} pcs</DataTable.Cell>
-                                            <DataTable.Cell textStyle={[styles.textTable, { width: 100 }]}>{formatRupiah(item.unit_price.toString())}</DataTable.Cell>
-                                            <DataTable.Cell textStyle={[styles.textTable, { width: 100 }]}>{formatRupiah(totalPrice(item.unit_price, item.total_order))}</DataTable.Cell>
-                                            <DataTable.Cell textStyle={[styles.textTable, { width: 100 }]}>{formatRupiah(item.actual_price.toString())}</DataTable.Cell>
-                                            <DataTable.Cell textStyle={[styles.textTable, { width: 200 }]}>
-                                                <View style={{ flexDirection: 'row', width: 200, justifyContent: 'center' }}>
+                                            {!hidePrice &&
+                                                <>
+                                                    <DataTable.Cell textStyle={[styles.textTable, { width: 100 }]}>{formatRupiah(item.unit_price.toString())}</DataTable.Cell>
+                                                    <DataTable.Cell textStyle={[styles.textTable, { width: 100 }]}>{formatRupiah(totalPrice(item.unit_price, item.total_order))}</DataTable.Cell>
+                                                    <DataTable.Cell textStyle={[styles.textTable, { width: 100 }]}>{formatRupiah(item.actual_price.toString())}</DataTable.Cell>
+                                                </>
+                                            }
+                                            <DataTable.Cell textStyle={[styles.textTable, { width: 80 }]}>{item.note}</DataTable.Cell>
+                                            <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>
+                                                <View style={{ flexDirection: 'row', width: 120, justifyContent: 'center' }}>
                                                     <TouchableOpacity
                                                         style={styles.filterButton}
-                                                    // onPress={() => navigation.navigate('UpdateUser', { detailUser: item, dataFamily: dataFamily || [] })}>
+                                                        onPress={() => {
+                                                            setDataUpload(
+                                                                {
+                                                                    idCard: item.id,
+                                                                    user: {
+                                                                        label: item.user_name,
+                                                                        value: item.user_name,
+                                                                        uuid: item.user_id,
+                                                                    },
+                                                                    category: {
+                                                                        label: item.name_category,
+                                                                        value: item.name_category,
+                                                                        id: item.id_category_order.toString(),
+                                                                        name: item.name_category,
+                                                                        price: item.unit_price.toString()
+                                                                    },
+                                                                    totalOrder: item.total_order.toString(),
+                                                                    note: item.note
+                                                                }
+                                                            )
+                                                            setTimeout(() => {
+                                                                setModalUpdate(true)
+                                                            }, 2000);
+
+                                                        }}
                                                     >
                                                         <Monicon name="material-symbols:edit-square-outline" size={25} color={COLOR_WHITE_1} />
                                                     </TouchableOpacity>
@@ -421,14 +475,14 @@ const ListOrderScreen = () => {
                             <View style={styles.paginationButtons}>
                                 <Button
                                     disabled={page === 0}
-                                    onPress={() => setPage(page - 1)}
+                                    onPress={() => page === 0 ? null : setPage(page - 1)}
                                     textColor={COLOR_PRIMARY}
                                 >
                                     Previous
                                 </Button>
                                 <Button
-                                    disabled={page >= totalPages - 1}
-                                    onPress={() => setPage(page + 1)}
+                                    disabled={page + 1 >= totalPages}
+                                    onPress={() => page + 1 >= totalPages ? null : setPage(page + 1)}
                                     textColor={COLOR_PRIMARY}
                                 >
                                     Next
@@ -440,7 +494,7 @@ const ListOrderScreen = () => {
                             mode='contained'
                             style={{ backgroundColor: COLOR_PRIMARY, marginHorizontal: 20 }}
                             textColor={COLOR_WHITE_1}
-                            onPress={() => Alert.alert('Info','Sedang tahap pengembangan')}>
+                            onPress={() => Alert.alert('Info', 'Sedang tahap pengembangan')}>
                             <Text>Tampilkan Perhitungan</Text>
                         </Button>
                     </>
@@ -449,6 +503,7 @@ const ListOrderScreen = () => {
         )
     }
 
+
     return (
         <BaseScreen>
             {settingFilter.category.id || showAllData ?
@@ -456,10 +511,13 @@ const ListOrderScreen = () => {
                     <View style={styles.searchContainer}>
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Search by name"
+                            placeholder="Cari nama..."
                             placeholderTextColor={COLOR_TEXT_BODY}
                             value={searchQuery}
-                            onChangeText={setSearchQuery}
+                            onChangeText={(e) => {
+                                setPage(0)
+                                setSearchQuery(e)
+                            }}
                         />
 
                         <TouchableOpacity style={styles.filterButton} onPress={() => setModalFilter(true)} >
@@ -571,8 +629,22 @@ const ListOrderScreen = () => {
             <Modal
                 animationType="fade"
                 transparent={true}
-                visible={modalCreate}
-                onRequestClose={() => setModalCreate(false)}
+                visible={modalCreate || modalUpdate}
+                onRequestClose={() => {
+                    if (modalUpdate) {
+                        setDataUpload({
+                            idCard: null,
+                            user: { label: '', value: '', uuid: '' },
+                            category: { label: '', value: '', id: '', name: '', price: '' },
+                            totalOrder: '',
+                            note: ''
+                        });
+                        setModalUpdate(false)
+                    } else {
+                        setModalCreate(false)
+                    }
+
+                }}
             >
                 <View style={styles.modalContainer}>
                     <KeyboardAvoidingView
@@ -585,7 +657,7 @@ const ListOrderScreen = () => {
                         >
                             <View style={styles.modalContent}>
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                    <Text style={styles.modalTitle}>TAMBAH DATA</Text>
+                                    <Text style={styles.modalTitle}>{modalUpdate ? 'UPDATE DATA' : 'TAMBAH DATA'}</Text>
                                 </View>
                                 <View>
                                     <Text style={{ color: COLOR_WHITE_1 }}>Pilih Nama yang Memesan</Text>
@@ -606,11 +678,10 @@ const ListOrderScreen = () => {
                                         placeholder={`Pilih Nama`}
                                         searchPlaceholder="Search..."
                                         value={dataUpload.user?.label}
-                                        onFocus={fetchSensus}
                                         onChange={item => {
                                             setDataUpload({
                                                 ...dataUpload,
-                                                user: { ...item, value: item.name, label: item.name }
+                                                user: { ...item, value: item.value, label: item.value }
                                             });
                                         }}
                                     />
@@ -654,6 +725,17 @@ const ListOrderScreen = () => {
                                         keyboardType='number-pad'
                                         onChangeText={(e) => setDataUpload({ ...dataUpload, totalOrder: e })}
                                     />
+                                    <Text style={{ color: COLOR_WHITE_1 }}>Masukkan Catatan Pemesanan</Text>
+                                    <TextInput
+                                        editable={!uploading}
+                                        multiline
+                                        textAlignVertical='top'
+                                        defaultValue={dataUpload.note}
+                                        style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: isExactChange ? 'gray' : '', height: 80 }]}
+                                        placeholder='Massukkan catatan'
+                                        placeholderTextColor={COLOR_TEXT_BODY}
+                                        onChangeText={(e) => setDataUpload({ ...dataUpload, note: e })}
+                                    />
                                 </View>
 
                                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15 }}>
@@ -694,7 +776,7 @@ const ListOrderScreen = () => {
                             keyboardShouldPersistTaps="handled"
                         >
                             <View style={styles.modalContent}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                                     <Text style={styles.modalTitle}>Filter Options</Text>
                                     <TouchableOpacity
                                         style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1 }]}
@@ -703,18 +785,27 @@ const ListOrderScreen = () => {
                                                 category: settingFilter.category,
                                                 isPayment: null
                                             })
+                                            setPage(0)
                                         }}
                                     >
                                         <Monicon name="tdesign:clear-filled" size={20} color={COLOR_WHITE_2} />
                                     </TouchableOpacity>
                                 </View>
                                 <View>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' }}>
                                         <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Tampilkan Semua Data</Text>
                                         <Switch
                                             color={COLOR_PRIMARY}
                                             value={showAllData}
                                             onValueChange={() => setShowAllData(!showAllData)}
+                                        />
+                                    </View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' }}>
+                                        <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Sembunyikan Kolom Harga</Text>
+                                        <Switch
+                                            color={COLOR_PRIMARY}
+                                            value={hidePrice}
+                                            onValueChange={() => setHidePrice(!hidePrice)}
                                         />
                                     </View>
                                     <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pilih Kategori</Text>
@@ -775,17 +866,20 @@ const ListOrderScreen = () => {
                                     </View>
                                 </View>
 
-                                <Button onPress={() => setModalFilter(false)} textColor={COLOR_PRIMARY}>Close</Button>
+                                <Button
+                                    textColor={COLOR_PRIMARY}
+                                    onPress={() => {
+                                        setModalFilter(false)
+                                        setPage(0)
+                                    }}
+                                >
+                                    Close
+                                </Button>
                             </View>
                         </ScrollView>
                     </KeyboardAvoidingView>
                 </View>
             </Modal>
-            {/* <View style={{ marginBottom: 20 }}> */}
-
-
-            {/* </View> */}
-
 
         </BaseScreen >
     );
@@ -804,7 +898,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLOR_PRIMARY,
     },
     firstColumn: {
-        width: 150,
+        width: 130,
         color: COLOR_WHITE_1,
     },
     textHeader: {
