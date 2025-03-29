@@ -36,7 +36,7 @@ const ListOrderScreen = () => {
     });
     const [dataUpload, setDataUpload] = useState({
         idCard: null as number | null,
-        user: { label: '', value: '', uuid: '' },
+        user: { label: '', value: '', id: '' },
         category: { label: '', value: '', id: '', name: '', price: '' },
         totalOrder: '',
         note: ''
@@ -174,15 +174,18 @@ const ListOrderScreen = () => {
 
     const handleCreateOrder = async () => {
         try {
-            if (!dataUpload?.user?.value || !dataUpload?.user?.uuid ||
+            console.log(dataUpload);
+            if (!dataUpload?.user?.value || !dataUpload?.user?.id ||
                 !dataUpload?.category?.id || !dataUpload?.category?.name ||
                 !dataUpload?.totalOrder) {
                 Alert.alert('Info', 'Semua field harus diisi');
                 return;
             }
+       
+            
             const transformBody = {
                 user_name: dataUpload?.user.value,
-                user_id: dataUpload.user?.uuid,
+                user_id: dataUpload.user?.id,
                 id_category_order: parseInt(dataUpload?.category.id),
                 name_category: dataUpload?.category.name,
                 total_order: parseInt(dataUpload.totalOrder),
@@ -222,8 +225,6 @@ const ListOrderScreen = () => {
             handleResetUpload();
         }
     };
-
-
 
     const handleDeleteUser = async (id: number) => {
         Alert.alert(
@@ -283,7 +284,7 @@ const ListOrderScreen = () => {
     const handleResetUpload = () => {
         setDataUpload({
             idCard: null,
-            user: { label: '', value: '', uuid: '' },
+            user: { label: '', value: '', id: '' },
             category: { label: '', value: '', id: '', name: '', price: '' },
             totalOrder: '',
             note: ''
@@ -336,9 +337,7 @@ const ListOrderScreen = () => {
                 </View>
             );
         }
-        console.log(dataDropdownSensus);
 
-        console.log(dataUpload);
         return (
             <>
                 {!filteredOrder || filteredOrder.length === 0 ?
@@ -349,12 +348,7 @@ const ListOrderScreen = () => {
                         <ScrollView horizontal nestedScrollEnabled>
                             <DataTable>
                                 <DataTable.Header>
-                                    <DataTable.Title textStyle={[{ width: 100 }]}>
-                                        <View>
-                                            <Text style={styles.textHeader}>STATUS</Text>
-                                            <Text style={styles.textHeader}>PEMBAYARAN</Text>
-                                        </View>
-                                    </DataTable.Title>
+                                    <DataTable.Title textStyle={[styles.textHeader, { width: 80, alignSelf: 'center' }]}>STATUS</DataTable.Title>
                                     <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader]}>NAMA</DataTable.Title>
                                     <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader]}>KATEGORI</DataTable.Title>
                                     <DataTable.Title textStyle={[styles.textHeader, { width: 80 }]}>JUMLAH</DataTable.Title>
@@ -386,8 +380,8 @@ const ListOrderScreen = () => {
                                 <ScrollView>
                                     {filteredOrder.slice(from, to).map((item) => (
                                         <DataTable.Row key={item.id}>
-                                            <DataTable.Cell textStyle={[styles.textTable, { width: 100, alignItems: "center" }]}>
-                                                <View style={{ width: 100 }}>
+                                            <DataTable.Cell textStyle={[styles.textTable, { width: 80, alignItems: "center" }]}>
+                                                <View style={{ width: 80 }}>
                                                     <TouchableOpacity
                                                         style={{ justifyContent: 'center', alignItems: 'center' }}
                                                         // onPress={() => handleUpdateOrder(item.id, item.is_payment)}
@@ -434,7 +428,7 @@ const ListOrderScreen = () => {
                                                                     user: {
                                                                         label: item.user_name,
                                                                         value: item.user_name,
-                                                                        uuid: item.user_id,
+                                                                        id: item.user_id,
                                                                     },
                                                                     category: {
                                                                         label: item.name_category,
@@ -634,7 +628,7 @@ const ListOrderScreen = () => {
                     if (modalUpdate) {
                         setDataUpload({
                             idCard: null,
-                            user: { label: '', value: '', uuid: '' },
+                            user: { label: '', value: '', id: '' },
                             category: { label: '', value: '', id: '', name: '', price: '' },
                             totalOrder: '',
                             note: ''
