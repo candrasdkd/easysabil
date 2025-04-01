@@ -20,7 +20,6 @@ type ListOrderRouteParams = {
 
 const ListOrderScreen = () => {
     const route = useRoute<RouteProp<{ params: ListOrderRouteParams }>>();
-    const { selectedCategory } = route.params;
     const navigation = useNavigation()
     const [dataOrder, setDataOrder] = useState<DataOrder[]>([]);
     const [dataDropdownSensus, setDataDropdownSensus] = useState<DataDropdown[]>([]);
@@ -37,14 +36,23 @@ const ListOrderScreen = () => {
     const [showAllData, setShowAllData] = useState(false);
     const [modalUpdate, setModalUpdate] = useState(false);
     const [hidePrice, setHidePrice] = useState(false);
-    const [settingFilter, setSettingFilter] = useState({
-        category: selectedCategory || { label: '', value: '', id: '', name: '', price: '' },
-        isPayment: null as boolean | null
+    const [settingFilter, setSettingFilter] = useState<{
+        category: SelectedCategoryProps;
+        isPayment: boolean | null;
+    }>({
+        category: {
+            label: '',
+            value: '',
+            id: '',
+            name: '',
+            price: ''
+        },
+        isPayment: null
     });
     const [dataUpload, setDataUpload] = useState({
         idCard: null as number | null,
         user: { label: '', value: '', id: '' },
-        category: selectedCategory || { label: '', value: '', id: '', name: '', price: '' },
+        category: route?.params?.selectedCategory || { label: '', value: '', id: '', name: '', price: '' },
         totalOrder: '',
         note: ''
     })
@@ -58,8 +66,6 @@ const ListOrderScreen = () => {
     // ref
     const bottomSheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ['25%', '50%'], []);
-    console.log('selectedCategory', selectedCategory);
-    console.log('settingFilter', settingFilter);
 
     // callbacks
     const handleSheetChanges = useCallback((index: number) => {
@@ -94,8 +100,6 @@ const ListOrderScreen = () => {
             return total + (item.actual_price);
         }, 0);
     }, [dataOrder]);
-
-
 
     const fetchDataOrder = async () => {
         let response
@@ -132,7 +136,6 @@ const ListOrderScreen = () => {
             setLoading(false);
         }
     };
-
 
     const fetchSensus = async () => {
         // handleClear();
@@ -219,7 +222,6 @@ const ListOrderScreen = () => {
         }
     };
 
-
     const handleCreateOrder = async () => {
         try {
             console.log(dataUpload);
@@ -230,7 +232,6 @@ const ListOrderScreen = () => {
                 return;
             }
 
-
             const transformBody = {
                 user_name: dataUpload?.user.value,
                 user_id: dataUpload.user?.id,
@@ -240,7 +241,6 @@ const ListOrderScreen = () => {
                 unit_price: parseInt(dataUpload?.category.price),
                 note: dataUpload?.note
             };
-            console.log(transformBody);
 
             setUploading(true);
             if (modalUpdate) {
@@ -360,16 +360,13 @@ const ListOrderScreen = () => {
     }, [])
 
     useEffect(() => {
-        setSettingFilter({
-            ...settingFilter,
-            category: selectedCategory
-        })
-        setDataUpload({
-            ...dataUpload,
-            category: selectedCategory
-        })
-    }, [selectedCategory])
-
+        if (route.params?.selectedCategory) {
+            setSettingFilter(prev => ({
+                ...prev,
+                category: route.params.selectedCategory
+            }));
+        }
+    }, [route.params?.selectedCategory]);
 
     const filteredOrder = dataOrder.filter(item => {
         const matchesSearch = item.user_name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -377,7 +374,6 @@ const ListOrderScreen = () => {
         const matchesPayment = settingFilter.isPayment === null || item.is_payment === settingFilter.isPayment;
         return matchesSearch && matchesCategory && matchesPayment;
     });
-
 
     const totalPages = Math.ceil(filteredOrder.length / itemsPerPage);
     const from = page * itemsPerPage;
@@ -452,7 +448,6 @@ const ListOrderScreen = () => {
             ]
         );
     };
-
 
     const renderContent = () => {
         if (loading) {
@@ -625,7 +620,6 @@ const ListOrderScreen = () => {
             </>
         )
     }
-
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -919,14 +913,14 @@ const ListOrderScreen = () => {
                                         </TouchableOpacity>
                                     </View>
                                     <View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' }}>
+                                        {/* <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' }}>
                                             <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Tampilkan Semua Data</Text>
                                             <Switch
                                                 color={COLOR_PRIMARY}
                                                 value={showAllData}
                                                 onValueChange={() => setShowAllData(!showAllData)}
                                             />
-                                        </View>
+                                        </View> */}
                                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' }}>
                                             <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Sembunyikan Kolom Harga</Text>
                                             <Switch

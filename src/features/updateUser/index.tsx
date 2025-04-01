@@ -76,6 +76,26 @@ const UpdateUser = () => {
 
     return (
         <View style={{ flex: 1 }}>
+            <View style={{ marginBottom: 5, flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginLeft: 20 }}>
+                <View style={{ flex: 1, minWidth: '45%' }}>
+                    <Text style={{ color: COLOR_TEXT_BODY, fontSize: 12 }}>• Balita: 0-5 tahun</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: '45%' }}>
+                    <Text style={{ color: COLOR_TEXT_BODY, fontSize: 12 }}>• Cabe Rawit: 6-12 tahun</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: '45%' }}>
+                    <Text style={{ color: COLOR_TEXT_BODY, fontSize: 12 }}>• Pra Remaja: 12-15 tahun</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: '45%' }}>
+                    <Text style={{ color: COLOR_TEXT_BODY, fontSize: 12 }}>• Remaja: 16-19 tahun</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: '45%' }}>
+                    <Text style={{ color: COLOR_TEXT_BODY, fontSize: 12 }}>• Pra Nikah: 19-30 tahun</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: '45%' }}>
+                    <Text style={{ color: COLOR_TEXT_BODY, fontSize: 12 }}>• Dewasa: 30 Tahun Keatas/Sudah menikah</Text>
+                </View>
+            </View>
             <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: ios ? 20 : 0, paddingTop: 20 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                     <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Aktif?</Text>
@@ -135,6 +155,36 @@ const UpdateUser = () => {
                         }
                     </Text>
                 </TouchableOpacity>
+                <Text style={{ color: COLOR_WHITE_1 }}>Usia</Text>
+                <TextInput
+                    editable={false}
+                    value={bodyUser.dob ? (() => {
+                        const birthDate = new Date(bodyUser.dob);
+                        const today = new Date();
+                        let years = today.getFullYear() - birthDate.getFullYear();
+                        let months = today.getMonth() - birthDate.getMonth();
+
+                        // Adjust for negative months
+                        if (months < 0) {
+                            years--;
+                            months += 12;
+                        }
+
+                        // Adjust if birthday hasn't occurred this month
+                        if (today.getDate() < birthDate.getDate()) {
+                            months--;
+                            if (months < 0) {
+                                years--;
+                                months += 12;
+                            }
+                        }
+
+                        return `${years} Tahun ${months} Bulan`;
+                    })() : ''}
+                    style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: 'gray' }]}
+                    placeholder='Usia akan otomatis terisi'
+                    placeholderTextColor={COLOR_TEXT_BODY}
+                />
                 <Text style={{ color: COLOR_WHITE_1 }}>Jenis Kelamin</Text>
                 <Dropdown
                     disable={uploading}
