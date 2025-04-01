@@ -224,7 +224,6 @@ const ListOrderScreen = () => {
 
     const handleCreateOrder = async () => {
         try {
-            console.log(dataUpload);
             if (!dataUpload?.user?.value || !dataUpload?.user?.id ||
                 !dataUpload?.category?.id || !dataUpload?.category?.name ||
                 !dataUpload?.totalOrder) {
@@ -369,10 +368,9 @@ const ListOrderScreen = () => {
     }, [route.params?.selectedCategory]);
 
     const filteredOrder = dataOrder.filter(item => {
-        const matchesSearch = item.user_name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = item.name_category.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = searchQuery === '' || item.user_name.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesPayment = settingFilter.isPayment === null || item.is_payment === settingFilter.isPayment;
-        return matchesSearch && matchesCategory && matchesPayment;
+        return matchesSearch && matchesPayment;
     });
 
     const totalPages = Math.ceil(filteredOrder.length / itemsPerPage);
@@ -389,7 +387,7 @@ const ListOrderScreen = () => {
         const formattedData = filteredOrder.map((item, index) => {
             const totalPrice = item.unit_price * item.total_order;
             grandTotal += totalPrice;
-            return `${index + 1}. Nama: ${item.user_name}\n   📦 Jumlah: ${item.total_order} pcs\n ${hidePrice ? '' : ` 💰 Total: ${formatRupiah(totalPrice.toString())}\n`}  📝 Catatan: ${item.note || '-'}\n`;
+            return `${index + 1}. Nama: ${item.user_name}\n   📦 Jumlah: ${item.total_order} pcs\n ${hidePrice ? '' : `  💰 Total: ${formatRupiah(totalPrice.toString())}\n`}   📝 Catatan: ${item.note || '-'}\n`;
         }).join('\n');
 
         const finalText = `*DAFTAR PESANAN ${settingFilter.category.label.toUpperCase()}*\n====================\n\n${formattedData}\n====================\n*TOTAL KESELURUHAN: ${formatRupiah(grandTotal.toString())}*`;
