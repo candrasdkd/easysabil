@@ -5,14 +5,14 @@ import Monicon from '@monicon/native';
 import { COLOR_BG_CARD, COLOR_DELETE_1, COLOR_DISABLE_1, COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1, COLOR_WHITE_2 } from '../../utils/constant';
 import { supabase } from '../../config';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { DataCategory, DataFamily, DataFolder } from '../../types';
+import { DataCategory, DataFamily, DataFolder, SelectedCategoryProps } from '../../types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatRupiah, ios } from '../../utils/helper';
 import BaseScreen from '../../components/BaseScreen';
 
 type RootStackParamList = {
     CreateCategoryOrder: { dataFamily: DataFamily[] | null };
-    ListOrder: { dataCategory: DataCategory };
+    ListOrder: { selectedCategory: SelectedCategoryProps };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -35,7 +35,7 @@ const CategoryOrder = () => {
     const [bodyUser, setBodyUser] = useState({
         category: '',
         year: today.getFullYear(),
-        price: ''
+        formatRupiah: '0'
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -53,7 +53,7 @@ const CategoryOrder = () => {
             }
             const formattedData = data.map(item => ({
                 ...item,
-                price: formatRupiah(item.price.toString())
+                formatRupiah: formatRupiah(item.price.toString()),
             }));
             setDataFolder(formattedData);
             setFilteredData(formattedData);
@@ -66,13 +66,13 @@ const CategoryOrder = () => {
 
     const handleSubmitOrder = async () => {
         try {
-            if (!bodyUser.category || !bodyUser.price) {
+            if (!bodyUser.category || !bodyUser.formatRupiah) {
                 Alert.alert('INFO', 'Semua field harus diisi.');
                 return; // Exit the function if validation fails
             }
             setUploading(true);
 
-            const numericPrice = parseInt(bodyUser.price.replace(/[^0-9]/g, ''), 10) || 0; // Convert to number
+            const numericPrice = parseInt(bodyUser.formatRupiah.replace(/[^0-9]/g, ''), 10) || 0; // Convert to number
 
             if (isNaN(numericPrice)) {
                 Alert.alert('Error', 'Harga harus berupa angka yang valid.');
@@ -107,12 +107,12 @@ const CategoryOrder = () => {
         try {
             setUploading(true);
 
-            if (!bodyUser.price || bodyUser.price === 'Rp') {
+            if (!bodyUser.formatRupiah || bodyUser.formatRupiah === 'Rp') {
                 Alert.alert('INFO', 'Semua field harus diisi.');
                 return; // Exit the function if validation fails
             }
 
-            const numericPrice = parseInt(bodyUser.price.replace(/[^0-9]/g, ''), 10) || 0; // Convert to number
+            const numericPrice = parseInt(bodyUser.formatRupiah.replace(/[^0-9]/g, ''), 10) || 0; // Convert to number
 
             if (isNaN(numericPrice)) {
                 Alert.alert('Error', 'Harga harus berupa angka yang valid.');
@@ -185,14 +185,14 @@ const CategoryOrder = () => {
     }
 
     const handlePriceChange = (text: string) => {
-        setBodyUser({ ...bodyUser, price: text });
+        setBodyUser({ ...bodyUser, formatRupiah: text });
     };
 
     const handleClearClose = () => {
         setBodyUser({
             category: '',
-            price: '',
-            year: bodyUser.year
+            year: bodyUser.year,
+            formatRupiah: ''
         });
         setModalUpdate(false);
         setModalVisible(false);
@@ -216,6 +216,7 @@ const CategoryOrder = () => {
             setFilteredData(filtered);
         }
     }, [searchQuery, dataFolder]);
+console.log(dataFolder);
 
     return (
         <BaseScreen>
@@ -263,10 +264,20 @@ const CategoryOrder = () => {
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={{ paddingHorizontal: 20 }}
                     renderItem={({ item }) => (
-                        <View style={{ marginBottom: 10 }}>
+                        <TouchableOpacity
+                            style={{ marginBottom: 10 }}
+                            onPress={() => navigation.navigate('ListOrder', {
+                                selectedCategory: {
+                                    label: `${item.name} ${item.year}`,
+                                    value: `${item.name} ${item.year}`,
+                                    id: item.id.toString(),
+                                    name: item.name,
+                                    price: item.price.toString()
+                                }
+                            })}>
                             <Card.Title
                                 title={`${item.name} (${item.year})`}
-                                subtitle={`${item.price}`}
+                                subtitle={`${item.formatRupiah}`}
                                 left={() => <Monicon name="material-symbols:folder-open-rounded" size={25} color={COLOR_PRIMARY} />}
                                 style={{
                                     backgroundColor: COLOR_BG_CARD,
@@ -287,7 +298,7 @@ const CategoryOrder = () => {
                                                 setBodyUser({
                                                     ...bodyUser,
                                                     category: item.name,
-                                                    price: item.price,
+                                                    formatRupiah: item.formatRupiah || '0',
                                                     year: item.year
                                                 })
                                             }}
@@ -309,7 +320,7 @@ const CategoryOrder = () => {
                                     </View>
                                 }
                             />
-                        </View>
+                        </TouchableOpacity>
                     )}
                     refreshing={loading}
                     onRefresh={fetchListOrder}
@@ -352,7 +363,7 @@ const CategoryOrder = () => {
                                 <Text style={{ color: COLOR_WHITE_1 }}>Harga (pcs)</Text>
                                 <TextInput
                                     editable={!uploading}
-                                    value={bodyUser.price ? formatRupiah(bodyUser.price) : bodyUser.price}
+                                    value={bodyUser.formatRupiah ? formatRupiah(bodyUser.formatRupiah) : bodyUser.formatRupiah}
                                     style={[styles.dropdown, { color: COLOR_WHITE_1 }]}
                                     placeholder="Masukkan harga satuan"
                                     placeholderTextColor={COLOR_WHITE_1}

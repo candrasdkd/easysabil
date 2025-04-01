@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View, Text, StatusBar, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, View, Text, StatusBar, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
 import { supabase } from '../../config';
 import CardComponent from '../../components/Card';
 import { ios } from '../../utils/helper';
@@ -108,7 +108,58 @@ const HomeScreen = () => {
 👩 Janda: ${count.totalWidow} orang
 `;
     Clipboard.default.setString(headerString);
-    Alert.alert('Info', 'Data berhasil di copy')
+    Alert.alert(
+      'Berhasil',
+      'Data berhasil disalin ke clipboard',
+      [
+        {
+          text: 'Pergi Ke Whatsapp',
+          onPress: () => {
+            // Encode the text for URL
+            const encodedText = encodeURIComponent(headerString);
+
+            // Check if WhatsApp is installed
+            const whatsappUrl = Platform.select({
+              ios: `https://wa.me/6285175070782?text=${encodedText}`,
+              android: `whatsapp://send?text=${encodedText}`,
+            });
+
+            if (whatsappUrl) {
+              Linking.canOpenURL(whatsappUrl)
+                .then(supported => {
+                  if (supported) {
+                    return Linking.openURL(whatsappUrl);
+                  } else {
+                    Alert.alert(
+                      'Error',
+                      'WhatsApp tidak terinstall di perangkat Anda',
+                      [
+                        {
+                          text: 'Instal Whatsapp',
+                          onPress: () => {
+                            // Open Play Store/App Store if WhatsApp is not installed
+                            const storeUrl = Platform.select({
+                              ios: 'https://apps.apple.com/app/whatsapp-messenger/id310633997',
+                              android: 'https://play.google.com/store/apps/details?id=com.whatsapp',
+                            });
+                            if (storeUrl) {
+                              Linking.openURL(storeUrl);
+                            }
+                          }
+                        }
+                      ]
+                    );
+                  }
+                })
+                .catch(err => {
+                  console.error('Error opening WhatsApp:', err);
+                  Alert.alert('Error', 'Gagal membuka WhatsApp');
+                });
+            }
+          }
+        }
+      ]
+    );
   }
 
 

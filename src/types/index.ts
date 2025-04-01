@@ -49,10 +49,19 @@ export interface DataCategory {
     price: string;
 }
 
+export interface SelectedCategoryProps {
+    label: string;
+    value: string;
+    id: string;
+    name:string;
+    price: string;
+}
+
 export interface DataFolder {
     created_at: string
     id: number;
     name: string;
+    formatRupiah?: string;
     price: string;
     year: number;
 }

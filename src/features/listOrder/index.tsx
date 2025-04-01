@@ -1,24 +1,31 @@
-import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, ActivityIndicator, Text, View, TextInput, Modal, TouchableOpacity, Alert, Pressable, KeyboardAvoidingView } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, ActivityIndicator, Text, View, TextInput, Modal, TouchableOpacity, Alert, Pressable, KeyboardAvoidingView, Linking, Platform } from 'react-native';
 import { Button, DataTable, Switch } from 'react-native-paper';
 import { COLOR_BG_CARD, COLOR_DELETE_1, COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1, COLOR_WHITE_2 } from '../../utils/constant';
-import { DataDropdown, DataOrder } from '../../types/';
+import { DataDropdown, DataOrder, SelectedCategoryProps } from '../../types/';
 import { supabase } from '../../config';
 import { Monicon } from "@monicon/native";
 import { Dropdown } from 'react-native-element-dropdown';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { formatRupiah, ios } from '../../utils/helper';
 import BaseScreen from '../../components/BaseScreen';
+import * as Clipboard from '@react-native-clipboard/clipboard';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+type ListOrderRouteParams = {
+    selectedCategory: SelectedCategoryProps; // Adjust this type based on your actual DataFamily type
+};
 
 const ListOrderScreen = () => {
-    // const route = useRoute<RouteProp<{ params: ListOrderRouteParams }>>();
-    // const { dataCategory } = route.params;
+    const route = useRoute<RouteProp<{ params: ListOrderRouteParams }>>();
+    const { selectedCategory } = route.params;
     const navigation = useNavigation()
     const [dataOrder, setDataOrder] = useState<DataOrder[]>([]);
     const [dataDropdownSensus, setDataDropdownSensus] = useState<DataDropdown[]>([]);
     const [dataDropdownCategory, setDataDropdownCategory] = useState<DataDropdown[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(0);
     const [itemsPerPage, setItemsPerPage] = useState(15);
@@ -31,13 +38,13 @@ const ListOrderScreen = () => {
     const [modalUpdate, setModalUpdate] = useState(false);
     const [hidePrice, setHidePrice] = useState(false);
     const [settingFilter, setSettingFilter] = useState({
-        category: { label: '', value: '', id: '', name: '', price: '' },
+        category: selectedCategory || { label: '', value: '', id: '', name: '', price: '' },
         isPayment: null as boolean | null
     });
     const [dataUpload, setDataUpload] = useState({
         idCard: null as number | null,
         user: { label: '', value: '', id: '' },
-        category: { label: '', value: '', id: '', name: '', price: '' },
+        category: selectedCategory || { label: '', value: '', id: '', name: '', price: '' },
         totalOrder: '',
         note: ''
     })
@@ -48,12 +55,52 @@ const ListOrderScreen = () => {
         price: '',
         status: false
     });
+    // ref
+    const bottomSheetRef = useRef<BottomSheet>(null);
+    const snapPoints = useMemo(() => ['25%', '50%'], []);
+    console.log('selectedCategory', selectedCategory);
+    console.log('settingFilter', settingFilter);
 
+    // callbacks
+    const handleSheetChanges = useCallback((index: number) => {
+        console.log('handleSheetChanges', index);
+    }, []);
     const onToggleSwitch = () => setIsExactChange(!isExactChange);
+
+    const renderBackdrop = useCallback(
+        (props: any) => (
+            <BottomSheetBackdrop
+                {...props}
+                disappearsOnIndex={-1}
+                appearsOnIndex={0}
+            />
+        ),
+        []
+    );
+
+    const handlePresentModalPress = useCallback(() => {
+        bottomSheetRef.current?.expand();
+    }, []);
+
+    // Calculate grandTotal
+    const grandTotal = useMemo(() => {
+        return dataOrder.reduce((total, item) => {
+            return total + (item.unit_price * item.total_order);
+        }, 0);
+    }, [dataOrder]);
+
+    const grandTotalActual = useMemo(() => {
+        return dataOrder.reduce((total, item) => {
+            return total + (item.actual_price);
+        }, 0);
+    }, [dataOrder]);
+
+
 
     const fetchDataOrder = async () => {
         let response
         try {
+            setLoading(true)
             if (settingFilter.category.id && !showAllData) {
                 response = await supabase
                     .from('data_order')
@@ -115,6 +162,7 @@ const ListOrderScreen = () => {
 
     const fetchListOrder = async () => {
         try {
+            setLoading(false);
             const { data, error } = await supabase
                 .from('category_order')
                 .select('*')
@@ -140,9 +188,9 @@ const ListOrderScreen = () => {
     const handleUpdateOrder = async () => {
         try {
             setUploading(true);
-            const selectionPrice = isExactChange ? detailData.price : actualPrice;
+            const selectionPrice = actualPrice;
             const numericPrice = parseInt(selectionPrice.replace(/[^0-9]/g, ''), 10) || 0; // Convert to number
-            if (numericPrice === 0 || numericPrice === null) {
+            if (!isExactChange && numericPrice === 0 || !isExactChange && numericPrice === null) {
                 Alert.alert('Info', 'Masukkan uang yang diterima');
                 return;
             }
@@ -181,17 +229,19 @@ const ListOrderScreen = () => {
                 Alert.alert('Info', 'Semua field harus diisi');
                 return;
             }
-       
-            
+
+
             const transformBody = {
                 user_name: dataUpload?.user.value,
                 user_id: dataUpload.user?.id,
                 id_category_order: parseInt(dataUpload?.category.id),
-                name_category: dataUpload?.category.name,
+                name_category: dataUpload?.category.label,
                 total_order: parseInt(dataUpload.totalOrder),
                 unit_price: parseInt(dataUpload?.category.price),
                 note: dataUpload?.note
             };
+            console.log(transformBody);
+
             setUploading(true);
             if (modalUpdate) {
                 const { error, status } = await supabase
@@ -300,10 +350,26 @@ const ListOrderScreen = () => {
             if (settingFilter.category.id || showAllData) {
                 fetchDataOrder();
             }
-            fetchSensus();
             // }
-        }, [navigation, settingFilter.category.id, showAllData])
+        }, [navigation, settingFilter.category.id, showAllData,])
     );
+
+    useEffect(() => {
+        fetchSensus();
+        fetchListOrder()
+    }, [])
+
+    useEffect(() => {
+        setSettingFilter({
+            ...settingFilter,
+            category: selectedCategory
+        })
+        setDataUpload({
+            ...dataUpload,
+            category: selectedCategory
+        })
+    }, [selectedCategory])
+
 
     const filteredOrder = dataOrder.filter(item => {
         const matchesSearch = item.user_name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -321,6 +387,72 @@ const ListOrderScreen = () => {
         const calculated = price * total
         return calculated.toString();
     }
+
+    const handleCopyToClipboard = () => {
+        let grandTotal = 0;
+        const formattedData = filteredOrder.map((item, index) => {
+            const totalPrice = item.unit_price * item.total_order;
+            grandTotal += totalPrice;
+            return `${index + 1}. Nama: ${item.user_name}\n   📦 Jumlah: ${item.total_order} pcs\n ${hidePrice ? '' : ` 💰 Total: ${formatRupiah(totalPrice.toString())}\n`}  📝 Catatan: ${item.note || '-'}\n`;
+        }).join('\n');
+
+        const finalText = `*DAFTAR PESANAN ${settingFilter.category.label.toUpperCase()}*\n====================\n\n${formattedData}\n====================\n*TOTAL KESELURUHAN: ${formatRupiah(grandTotal.toString())}*`;
+        Clipboard.default.setString(finalText);
+
+        Alert.alert(
+            'Berhasil',
+            'Data berhasil disalin ke clipboard',
+            [
+                {
+                    text: 'Pergi Ke Whatsapp',
+                    onPress: () => {
+                        // Encode the text for URL
+                        const encodedText = encodeURIComponent(finalText);
+
+                        // Check if WhatsApp is installed
+                        const whatsappUrl = Platform.select({
+                            ios: `https://wa.me/6285175070782?text=${encodedText}`,
+                            android: `whatsapp://send?text=${encodedText}`,
+                        });
+
+                        if (whatsappUrl) {
+                            Linking.canOpenURL(whatsappUrl)
+                                .then(supported => {
+                                    if (supported) {
+                                        return Linking.openURL(whatsappUrl);
+                                    } else {
+                                        Alert.alert(
+                                            'Error',
+                                            'WhatsApp tidak terinstall di perangkat Anda',
+                                            [
+                                                {
+                                                    text: 'Instal Whatsapp',
+                                                    onPress: () => {
+                                                        // Open Play Store/App Store if WhatsApp is not installed
+                                                        const storeUrl = Platform.select({
+                                                            ios: 'https://apps.apple.com/app/whatsapp-messenger/id310633997',
+                                                            android: 'https://play.google.com/store/apps/details?id=com.whatsapp',
+                                                        });
+                                                        if (storeUrl) {
+                                                            Linking.openURL(storeUrl);
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        );
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error('Error opening WhatsApp:', err);
+                                    Alert.alert('Error', 'Gagal membuka WhatsApp');
+                                });
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
 
     const renderContent = () => {
         if (loading) {
@@ -441,16 +573,13 @@ const ListOrderScreen = () => {
                                                                     note: item.note
                                                                 }
                                                             )
-                                                            setTimeout(() => {
-                                                                setModalUpdate(true)
-                                                            }, 2000);
-
+                                                            setModalUpdate(true)
                                                         }}
                                                     >
                                                         <Monicon name="material-symbols:edit-square-outline" size={25} color={COLOR_WHITE_1} />
                                                     </TouchableOpacity>
                                                     <TouchableOpacity
-                                                        style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1 }]}
+                                                        style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1, marginLeft: 5 }]}
                                                         onPress={() => handleDeleteUser(item.id)}
                                                     >
                                                         <Monicon name="material-symbols:delete-outline-sharp" size={25} color={COLOR_WHITE_1} />
@@ -486,9 +615,9 @@ const ListOrderScreen = () => {
                         <Button
                             // disabled={uploading}
                             mode='contained'
-                            style={{ backgroundColor: COLOR_PRIMARY, marginHorizontal: 20 }}
+                            style={{ backgroundColor: COLOR_PRIMARY, marginHorizontal: 20, marginBottom: ios ? 0 : 20 }}
                             textColor={COLOR_WHITE_1}
-                            onPress={() => Alert.alert('Info', 'Sedang tahap pengembangan')}>
+                            onPress={handlePresentModalPress}>
                             <Text>Tampilkan Perhitungan</Text>
                         </Button>
                     </>
@@ -499,397 +628,445 @@ const ListOrderScreen = () => {
 
 
     return (
-        <BaseScreen>
-            {settingFilter.category.id || showAllData ?
-                <>
-                    <View style={styles.searchContainer}>
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Cari nama..."
-                            placeholderTextColor={COLOR_TEXT_BODY}
-                            value={searchQuery}
-                            onChangeText={(e) => {
-                                setPage(0)
-                                setSearchQuery(e)
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <BaseScreen>
+                {settingFilter.category.id || showAllData ?
+                    <>
+                        <View style={styles.searchContainer}>
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Cari nama..."
+                                placeholderTextColor={COLOR_TEXT_BODY}
+                                value={searchQuery}
+                                onChangeText={(e) => {
+                                    setPage(0)
+                                    setSearchQuery(e)
+                                }}
+                            />
+
+                            <TouchableOpacity style={styles.filterButton} onPress={() => setModalFilter(true)} >
+                                <Monicon name="material-symbols:filter-alt" size={30} color={COLOR_WHITE_1} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.fab} onPress={handleCopyToClipboard}>
+                                <Monicon name="material-symbols:content-copy" size={30} color={COLOR_WHITE_1} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.filterButton} onPress={() => setModalCreate(true)}>
+                                <Monicon name="material-symbols:add" size={30} color={COLOR_WHITE_1} />
+                            </TouchableOpacity>
+                        </View>
+                        {renderContent()}
+
+                    </>
+
+                    :
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                        <Dropdown
+                            disable={uploading}
+                            style={[styles.dropdown, { marginHorizontal: 30 }]}
+                            placeholderStyle={styles.placeholderStyle}
+                            selectedTextStyle={styles.selectedTextStyle}
+                            inputSearchStyle={styles.inputSearchStyle}
+                            containerStyle={{ backgroundColor: COLOR_BG_CARD }}
+                            itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
+                            activeColor={COLOR_PRIMARY}
+                            data={dataDropdownCategory || []}
+                            search
+                            maxHeight={300}
+                            labelField="label"
+                            valueField="value"
+                            placeholder={'Pilih kategori data yang ingin ditampilkan'}
+                            searchPlaceholder="Search..."
+                            value={settingFilter.category?.label}
+                            onFocus={fetchListOrder}
+                            onChange={item => {
+                                setSettingFilter({
+                                    ...settingFilter,
+                                    category: {
+                                        ...item,
+                                        label: `${item.name} ${item.year}`,
+                                        value: `${item.name} ${item.year}`,
+                                        price: `${item.price}`
+                                    }
+                                });
                             }}
                         />
-
-                        <TouchableOpacity style={styles.filterButton} onPress={() => setModalFilter(true)} >
-                            <Monicon name="material-symbols:filter-alt" size={30} color={COLOR_WHITE_1} />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.fab} onPress={() => setModalCreate(true)}>
-                            <Monicon name="material-symbols:add" size={30} color={COLOR_WHITE_1} />
-                        </TouchableOpacity>
                     </View>
-                    {renderContent()}
+                }
 
-                </>
+                {/* MODAL PAYMENT*/}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={() => setModalVisible(false)}
+                >
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalContent}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <Text style={styles.modalTitle}>STATUS PEMBAYARAN</Text>
+                            </View>
+                            <View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                                    <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pembayaran Pas</Text>
+                                    <Switch
+                                        color={COLOR_PRIMARY}
+                                        value={isExactChange}
+                                        onValueChange={onToggleSwitch}
+                                    />
+                                </View>
+                                <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Total Yang Harus Dibayarkan</Text>
+                                <TextInput
+                                    editable={false}
+                                    defaultValue={detailData.price}
+                                    style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: 'gray' }]}
+                                    placeholder='Masukkan nama kategori'
+                                    placeholderTextColor={COLOR_WHITE_1}
+                                />
 
-                :
-                <View style={{ flex: 1, justifyContent: 'center' }}>
-                    <Dropdown
-                        disable={uploading}
-                        style={[styles.dropdown, { marginHorizontal: 30 }]}
-                        placeholderStyle={styles.placeholderStyle}
-                        selectedTextStyle={styles.selectedTextStyle}
-                        inputSearchStyle={styles.inputSearchStyle}
-                        containerStyle={{ backgroundColor: COLOR_BG_CARD }}
-                        itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
-                        activeColor={COLOR_PRIMARY}
-                        data={dataDropdownCategory || []}
-                        search
-                        maxHeight={300}
-                        labelField="label"
-                        valueField="value"
-                        placeholder={'Pilih kategori data yang ingin ditampilkan'}
-                        searchPlaceholder="Search..."
-                        value={settingFilter.category?.label}
-                        onFocus={fetchListOrder}
-                        onChange={item => {
-                            setSettingFilter({
-                                ...settingFilter,
-                                category: {
-                                    ...item,
-                                    label: `${item.name} ${item.year}`,
-                                    value: `${item.name} ${item.year}`,
-                                    price: `${item.price}`
-                                }
-                            });
-                        }}
-                    />
-                </View>
-            }
-
-            {/* MODAL PAYMENT*/}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                            <Text style={styles.modalTitle}>STATUS PEMBAYARAN</Text>
-                        </View>
-                        <View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                                <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pembayaran Pas</Text>
-                                <Switch
-                                    color={COLOR_PRIMARY}
-                                    value={isExactChange}
-                                    onValueChange={onToggleSwitch}
+                                <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Total Uang Yang Diterima</Text>
+                                <TextInput
+                                    editable={!isExactChange}
+                                    defaultValue={isExactChange ? detailData.price : actualPrice ? formatRupiah(actualPrice) : actualPrice}
+                                    style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: isExactChange ? 'gray' : COLOR_BG_CARD }]}
+                                    placeholder='Masukkan uang yang diterima'
+                                    placeholderTextColor={COLOR_WHITE_1}
+                                    keyboardType='number-pad'
+                                    onChangeText={(e) => setActualPrice(e)}
                                 />
                             </View>
-                            <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Total Yang Harus Dibayarkan</Text>
-                            <TextInput
-                                editable={false}
-                                defaultValue={detailData.price}
-                                style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: 'gray' }]}
-                                placeholder='Masukkan nama kategori'
-                                placeholderTextColor={COLOR_WHITE_1}
-                            />
-
-                            <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Total Uang Yang Diterima</Text>
-                            <TextInput
-                                editable={!isExactChange}
-                                defaultValue={isExactChange ? detailData.price : actualPrice ? formatRupiah(actualPrice) : actualPrice}
-                                style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: isExactChange ? 'gray' : '' }]}
-                                placeholder='Masukkan uang yang diterima'
-                                placeholderTextColor={COLOR_WHITE_1}
-                                keyboardType='number-pad'
-                                onChangeText={(e) => setActualPrice(e)}
-                            />
-                        </View>
-                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15 }}>
-                            <Button
-                                onPress={handleResetPayment}
-                                textColor={COLOR_PRIMARY}>
-                                Tutup
-                            </Button>
-                            <Button
-                                mode='contained'
-                                buttonColor={COLOR_PRIMARY}
-                                onPress={handleUpdateOrder}
-                                textColor={COLOR_WHITE_1}>
-                                Update
-                            </Button>
-                        </View>
-
-                    </View>
-                </View>
-            </Modal>
-            {/* MODAL CREATE*/}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={modalCreate || modalUpdate}
-                onRequestClose={() => {
-                    if (modalUpdate) {
-                        setDataUpload({
-                            idCard: null,
-                            user: { label: '', value: '', id: '' },
-                            category: { label: '', value: '', id: '', name: '', price: '' },
-                            totalOrder: '',
-                            note: ''
-                        });
-                        setModalUpdate(false)
-                    } else {
-                        setModalCreate(false)
-                    }
-
-                }}
-            >
-                <View style={styles.modalContainer}>
-                    <KeyboardAvoidingView
-                        behavior={ios ? 'padding' : 'height'} // Untuk iOS, gunakan padding
-                        style={{ flex: 1, width: '100%' }}
-                    >
-                        <ScrollView
-                            contentContainerStyle={styles.modalContentContainer}
-                            keyboardShouldPersistTaps="handled"
-                        >
-                            <View style={styles.modalContent}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                    <Text style={styles.modalTitle}>{modalUpdate ? 'UPDATE DATA' : 'TAMBAH DATA'}</Text>
-                                </View>
-                                <View>
-                                    <Text style={{ color: COLOR_WHITE_1 }}>Pilih Nama yang Memesan</Text>
-                                    <Dropdown
-                                        disable={uploading}
-                                        style={[styles.dropdown]}
-                                        placeholderStyle={styles.placeholderStyle}
-                                        selectedTextStyle={styles.selectedTextStyle}
-                                        inputSearchStyle={styles.inputSearchStyle}
-                                        containerStyle={{ backgroundColor: COLOR_BG_CARD }}
-                                        itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
-                                        activeColor={COLOR_PRIMARY}
-                                        data={dataDropdownSensus || []}
-                                        search
-                                        maxHeight={300}
-                                        labelField="label"
-                                        valueField="value"
-                                        placeholder={`Pilih Nama`}
-                                        searchPlaceholder="Search..."
-                                        value={dataUpload.user?.label}
-                                        onChange={item => {
-                                            setDataUpload({
-                                                ...dataUpload,
-                                                user: { ...item, value: item.value, label: item.value }
-                                            });
-                                        }}
-                                    />
-                                    <Text style={{ color: COLOR_WHITE_1 }}>Pilih Kategori Pesanan</Text>
-                                    <Dropdown
-                                        disable={uploading}
-                                        style={[styles.dropdown]}
-                                        placeholderStyle={styles.placeholderStyle}
-                                        selectedTextStyle={styles.selectedTextStyle}
-                                        inputSearchStyle={styles.inputSearchStyle}
-                                        containerStyle={{ backgroundColor: COLOR_BG_CARD }}
-                                        itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
-                                        activeColor={COLOR_PRIMARY}
-                                        data={dataDropdownCategory || []}
-                                        search
-                                        maxHeight={300}
-                                        labelField="label"
-                                        valueField="value"
-                                        placeholder={'Pilih Kategori'}
-                                        searchPlaceholder="Search..."
-                                        value={dataUpload.category?.label}
-                                        onFocus={fetchListOrder}
-                                        onChange={item => {
-                                            setDataUpload({
-                                                ...dataUpload,
-                                                category: {
-                                                    ...item,
-                                                    label: `${item.name} ${item.year}`,
-                                                    value: `${item.name} ${item.year}`,
-                                                }
-                                            });
-                                        }}
-                                    />
-                                    <Text style={{ color: COLOR_WHITE_1 }}>Jumlah Yang Dipesan</Text>
-                                    <TextInput
-                                        editable={!uploading}
-                                        defaultValue={dataUpload.totalOrder}
-                                        style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: isExactChange ? 'gray' : '' }]}
-                                        placeholder='Masukkan jumlah pemesanan'
-                                        placeholderTextColor={COLOR_TEXT_BODY}
-                                        keyboardType='number-pad'
-                                        onChangeText={(e) => setDataUpload({ ...dataUpload, totalOrder: e })}
-                                    />
-                                    <Text style={{ color: COLOR_WHITE_1 }}>Masukkan Catatan Pemesanan</Text>
-                                    <TextInput
-                                        editable={!uploading}
-                                        multiline
-                                        textAlignVertical='top'
-                                        defaultValue={dataUpload.note}
-                                        style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: isExactChange ? 'gray' : '', height: 80 }]}
-                                        placeholder='Massukkan catatan'
-                                        placeholderTextColor={COLOR_TEXT_BODY}
-                                        onChangeText={(e) => setDataUpload({ ...dataUpload, note: e })}
-                                    />
-                                </View>
-
-                                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15 }}>
-                                    <Button
-                                        loading={uploading}
-                                        onPress={() => !uploading ? handleResetUpload() : null}
-                                        textColor={COLOR_PRIMARY}>
-                                        Tutup
-                                    </Button>
-                                    <Button
-                                        loading={uploading}
-                                        mode='contained'
-                                        buttonColor={COLOR_PRIMARY}
-                                        onPress={() => !uploading ? handleCreateOrder() : null}
-                                        textColor={COLOR_WHITE_1}>
-                                        Submit
-                                    </Button>
-                                </View>
+                            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15 }}>
+                                <Button
+                                    onPress={handleResetPayment}
+                                    textColor={COLOR_PRIMARY}>
+                                    Tutup
+                                </Button>
+                                <Button
+                                    mode='contained'
+                                    buttonColor={COLOR_PRIMARY}
+                                    onPress={handleUpdateOrder}
+                                    textColor={COLOR_WHITE_1}>
+                                    Update
+                                </Button>
                             </View>
-                        </ScrollView>
-                    </KeyboardAvoidingView>
-                </View>
-            </Modal>
-            {/* MODAL FILTER*/}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={modalFilter}
-                onRequestClose={() => setModalFilter(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <KeyboardAvoidingView
-                        behavior={ios ? 'padding' : 'height'} // Untuk iOS, gunakan padding
-                        style={{ flex: 1, width: '100%' }}
-                    >
-                        <ScrollView
-                            contentContainerStyle={styles.modalContentContainer}
-                            keyboardShouldPersistTaps="handled"
+
+                        </View>
+                    </View>
+                </Modal>
+                {/* MODAL CREATE*/}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={modalCreate || modalUpdate}
+                    onRequestClose={() => {
+                        if (modalUpdate) {
+                            setDataUpload({
+                                idCard: null,
+                                user: { label: '', value: '', id: '' },
+                                category: { label: '', value: '', id: '', name: '', price: '' },
+                                totalOrder: '',
+                                note: ''
+                            });
+                            setModalUpdate(false)
+                        } else {
+                            setModalCreate(false)
+                        }
+
+                    }}
+                >
+                    <View style={styles.modalContainer}>
+                        <KeyboardAvoidingView
+                            behavior={ios ? 'padding' : 'height'} // Untuk iOS, gunakan padding
+                            style={{ flex: 1, width: '100%' }}
                         >
-                            <View style={styles.modalContent}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                    <Text style={styles.modalTitle}>Filter Options</Text>
-                                    <TouchableOpacity
-                                        style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1 }]}
+                            <ScrollView
+                                contentContainerStyle={styles.modalContentContainer}
+                                keyboardShouldPersistTaps="handled"
+                            >
+                                <View style={styles.modalContent}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                        <Text style={styles.modalTitle}>{modalUpdate ? 'UPDATE DATA' : 'TAMBAH DATA'}</Text>
+                                    </View>
+                                    <View>
+                                        <Text style={{ color: COLOR_WHITE_1 }}>Pilih Nama yang Memesan</Text>
+                                        <Dropdown
+                                            disable={uploading}
+                                            style={[styles.dropdown]}
+                                            placeholderStyle={styles.placeholderStyle}
+                                            selectedTextStyle={styles.selectedTextStyle}
+                                            inputSearchStyle={styles.inputSearchStyle}
+                                            containerStyle={{ backgroundColor: COLOR_BG_CARD }}
+                                            itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
+                                            activeColor={COLOR_PRIMARY}
+                                            data={dataDropdownSensus || []}
+                                            search
+                                            maxHeight={300}
+                                            labelField="label"
+                                            valueField="value"
+                                            placeholder={`Pilih Nama`}
+                                            searchPlaceholder="Search..."
+                                            value={dataUpload.user?.label}
+                                            onChange={item => {
+                                                setDataUpload({
+                                                    ...dataUpload,
+                                                    user: { ...item, value: item.value, label: item.value }
+                                                });
+                                            }}
+                                        />
+                                        <Text style={{ color: COLOR_WHITE_1 }}>Pilih Kategori Pesanan</Text>
+                                        <Dropdown
+                                            disable={uploading}
+                                            style={[styles.dropdown]}
+                                            placeholderStyle={styles.placeholderStyle}
+                                            selectedTextStyle={styles.selectedTextStyle}
+                                            inputSearchStyle={styles.inputSearchStyle}
+                                            containerStyle={{ backgroundColor: COLOR_BG_CARD }}
+                                            itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
+                                            activeColor={COLOR_PRIMARY}
+                                            data={dataDropdownCategory || []}
+                                            search
+                                            maxHeight={300}
+                                            labelField="label"
+                                            valueField="value"
+                                            placeholder={'Pilih Kategori'}
+                                            searchPlaceholder="Search..."
+                                            value={dataUpload.category?.label}
+                                            onFocus={fetchListOrder}
+                                            onChange={item => {
+                                                setDataUpload({
+                                                    ...dataUpload,
+                                                    category: {
+                                                        ...item,
+                                                        label: `${item.name} ${item.year}`,
+                                                        value: `${item.name} ${item.year}`,
+                                                    }
+                                                });
+                                            }}
+                                        />
+                                        <Text style={{ color: COLOR_WHITE_1 }}>Jumlah Yang Dipesan</Text>
+                                        <TextInput
+                                            editable={!uploading}
+                                            defaultValue={dataUpload.totalOrder}
+                                            style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: isExactChange ? 'gray' : '' }]}
+                                            placeholder='Masukkan jumlah pemesanan'
+                                            placeholderTextColor={COLOR_TEXT_BODY}
+                                            keyboardType='number-pad'
+                                            onChangeText={(e) => setDataUpload({ ...dataUpload, totalOrder: e })}
+                                        />
+                                        <Text style={{ color: COLOR_WHITE_1 }}>Masukkan Catatan Pemesanan</Text>
+                                        <TextInput
+                                            editable={!uploading}
+                                            multiline
+                                            textAlignVertical='top'
+                                            defaultValue={dataUpload.note}
+                                            style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: isExactChange ? 'gray' : '', height: 80 }]}
+                                            placeholder='Massukkan catatan'
+                                            placeholderTextColor={COLOR_TEXT_BODY}
+                                            onChangeText={(e) => setDataUpload({ ...dataUpload, note: e })}
+                                        />
+                                    </View>
+
+                                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15 }}>
+                                        <Button
+                                            loading={uploading}
+                                            onPress={() => !uploading ? handleResetUpload() : null}
+                                            textColor={COLOR_PRIMARY}>
+                                            Tutup
+                                        </Button>
+                                        <Button
+                                            loading={uploading}
+                                            mode='contained'
+                                            buttonColor={COLOR_PRIMARY}
+                                            onPress={() => !uploading ? handleCreateOrder() : null}
+                                            textColor={COLOR_WHITE_1}>
+                                            Submit
+                                        </Button>
+                                    </View>
+                                </View>
+                            </ScrollView>
+                        </KeyboardAvoidingView>
+                    </View>
+                </Modal>
+                {/* MODAL FILTER*/}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={modalFilter}
+                    onRequestClose={() => setModalFilter(false)}
+                >
+                    <View style={styles.modalContainer}>
+                        <KeyboardAvoidingView
+                            behavior={ios ? 'padding' : 'height'} // Untuk iOS, gunakan padding
+                            style={{ flex: 1, width: '100%' }}
+                        >
+                            <ScrollView
+                                contentContainerStyle={styles.modalContentContainer}
+                                keyboardShouldPersistTaps="handled"
+                            >
+                                <View style={styles.modalContent}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                        <Text style={styles.modalTitle}>Filter Options</Text>
+                                        <TouchableOpacity
+                                            style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1 }]}
+                                            onPress={() => {
+                                                setSettingFilter({
+                                                    category: settingFilter.category,
+                                                    isPayment: null
+                                                })
+                                                setPage(0)
+                                            }}
+                                        >
+                                            <Monicon name="tdesign:clear-filled" size={20} color={COLOR_WHITE_2} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' }}>
+                                            <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Tampilkan Semua Data</Text>
+                                            <Switch
+                                                color={COLOR_PRIMARY}
+                                                value={showAllData}
+                                                onValueChange={() => setShowAllData(!showAllData)}
+                                            />
+                                        </View>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' }}>
+                                            <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Sembunyikan Kolom Harga</Text>
+                                            <Switch
+                                                color={COLOR_PRIMARY}
+                                                value={hidePrice}
+                                                onValueChange={() => setHidePrice(!hidePrice)}
+                                            />
+                                        </View>
+                                        <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pilih Kategori</Text>
+                                        <Dropdown
+                                            disable={uploading}
+                                            style={[styles.dropdown]}
+                                            placeholderStyle={styles.placeholderStyle}
+                                            selectedTextStyle={styles.selectedTextStyle}
+                                            inputSearchStyle={styles.inputSearchStyle}
+                                            containerStyle={{ backgroundColor: COLOR_BG_CARD }}
+                                            itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
+                                            activeColor={COLOR_PRIMARY}
+                                            data={dataDropdownCategory || []}
+                                            search
+                                            maxHeight={300}
+                                            labelField="label"
+                                            valueField="value"
+                                            placeholder={'Pilih Kategori'}
+                                            searchPlaceholder="Search..."
+                                            value={settingFilter.category?.label}
+                                            onFocus={fetchListOrder}
+                                            onChange={item => {
+                                                setSettingFilter({
+                                                    ...settingFilter,
+                                                    category: {
+                                                        ...item,
+                                                        label: `${item.name} ${item.year}`,
+                                                        value: `${item.name} ${item.year}`,
+                                                        price: `${item.price}`
+                                                    }
+                                                });
+                                            }}
+                                        />
+                                        <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Status Pembayaran</Text>
+                                        <View style={{ justifyContent: 'space-around', marginBottom: 10, paddingTop: 5, marginLeft: 5 }}>
+                                            <TouchableOpacity
+                                                style={{ alignItems: 'center', flexDirection: 'row', marginBottom: 5 }}
+                                                onPress={() => setSettingFilter({ ...settingFilter, isPayment: settingFilter.isPayment === false ? null : settingFilter.isPayment })}>
+                                                <Monicon
+                                                    name={settingFilter.isPayment === false ? "mdi:checkbox-marked-circle" : "mdi:checkbox-blank-circle-outline"}
+                                                    size={20}
+                                                    color={settingFilter.isPayment === false ? COLOR_PRIMARY : COLOR_WHITE_1}
+                                                />
+                                                <Text style={{ color: COLOR_WHITE_1, marginLeft: 10 }}>Belum Bayar</Text>
+
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={{ alignItems: 'center', flexDirection: 'row' }}
+                                                onPress={() => setSettingFilter({ ...settingFilter, isPayment: settingFilter.isPayment === true ? null : settingFilter.isPayment })}>
+                                                <Monicon
+                                                    name={settingFilter.isPayment === true ? "mdi:checkbox-marked-circle" : "mdi:checkbox-blank-circle-outline"}
+                                                    size={20}
+                                                    color={settingFilter.isPayment === true ? COLOR_PRIMARY : COLOR_WHITE_1}
+                                                />
+                                                <Text style={{ color: COLOR_WHITE_1, marginLeft: 10 }}>Sudah Bayar</Text>
+                                            </TouchableOpacity>
+
+                                        </View>
+                                    </View>
+
+                                    <Button
+                                        textColor={COLOR_PRIMARY}
                                         onPress={() => {
-                                            setSettingFilter({
-                                                category: settingFilter.category,
-                                                isPayment: null
-                                            })
+                                            setModalFilter(false)
                                             setPage(0)
                                         }}
                                     >
-                                        <Monicon name="tdesign:clear-filled" size={20} color={COLOR_WHITE_2} />
-                                    </TouchableOpacity>
+                                        Close
+                                    </Button>
                                 </View>
-                                <View>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' }}>
-                                        <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Tampilkan Semua Data</Text>
-                                        <Switch
-                                            color={COLOR_PRIMARY}
-                                            value={showAllData}
-                                            onValueChange={() => setShowAllData(!showAllData)}
-                                        />
-                                    </View>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' }}>
-                                        <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Sembunyikan Kolom Harga</Text>
-                                        <Switch
-                                            color={COLOR_PRIMARY}
-                                            value={hidePrice}
-                                            onValueChange={() => setHidePrice(!hidePrice)}
-                                        />
-                                    </View>
-                                    <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pilih Kategori</Text>
-                                    <Dropdown
-                                        disable={uploading}
-                                        style={[styles.dropdown]}
-                                        placeholderStyle={styles.placeholderStyle}
-                                        selectedTextStyle={styles.selectedTextStyle}
-                                        inputSearchStyle={styles.inputSearchStyle}
-                                        containerStyle={{ backgroundColor: COLOR_BG_CARD }}
-                                        itemTextStyle={{ color: COLOR_WHITE_1, fontSize: 13 }}
-                                        activeColor={COLOR_PRIMARY}
-                                        data={dataDropdownCategory || []}
-                                        search
-                                        maxHeight={300}
-                                        labelField="label"
-                                        valueField="value"
-                                        placeholder={'Pilih Kategori'}
-                                        searchPlaceholder="Search..."
-                                        value={settingFilter.category?.label}
-                                        onFocus={fetchListOrder}
-                                        onChange={item => {
-                                            setSettingFilter({
-                                                ...settingFilter,
-                                                category: {
-                                                    ...item,
-                                                    label: `${item.name} ${item.year}`,
-                                                    value: `${item.name} ${item.year}`,
-                                                    price: `${item.price}`
-                                                }
-                                            });
-                                        }}
-                                    />
-                                    <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Status Pembayaran</Text>
-                                    <View style={{ justifyContent: 'space-around', marginBottom: 10, paddingTop: 5, marginLeft: 5 }}>
-                                        <TouchableOpacity
-                                            style={{ alignItems: 'center', flexDirection: 'row', marginBottom: 5 }}
-                                            onPress={() => setSettingFilter({ ...settingFilter, isPayment: false })}>
-                                            <Monicon
-                                                name={settingFilter.isPayment === false ? "mdi:checkbox-marked-circle" : "mdi:checkbox-blank-circle-outline"}
-                                                size={20}
-                                                color={settingFilter.isPayment === false ? COLOR_PRIMARY : COLOR_WHITE_1}
-                                            />
-                                            <Text style={{ color: COLOR_WHITE_1, marginLeft: 10 }}>Belum Bayar</Text>
-
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={{ alignItems: 'center', flexDirection: 'row' }}
-                                            onPress={() => setSettingFilter({ ...settingFilter, isPayment: true })}>
-                                            <Monicon
-                                                name={settingFilter.isPayment === true ? "mdi:checkbox-marked-circle" : "mdi:checkbox-blank-circle-outline"}
-                                                size={20}
-                                                color={settingFilter.isPayment === true ? COLOR_PRIMARY : COLOR_WHITE_1}
-                                            />
-                                            <Text style={{ color: COLOR_WHITE_1, marginLeft: 10 }}>Sudah Bayar</Text>
-                                        </TouchableOpacity>
-
-                                    </View>
-                                </View>
-
-                                <Button
-                                    textColor={COLOR_PRIMARY}
-                                    onPress={() => {
-                                        setModalFilter(false)
-                                        setPage(0)
-                                    }}
-                                >
-                                    Close
-                                </Button>
+                            </ScrollView>
+                        </KeyboardAvoidingView>
+                    </View>
+                </Modal>
+                <BottomSheet
+                    ref={bottomSheetRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    onChange={handleSheetChanges}
+                    backdropComponent={renderBackdrop}
+                    enablePanDownToClose={true}
+                    handleIndicatorStyle={{ backgroundColor: COLOR_WHITE_1 }}
+                    handleStyle={{ backgroundColor: COLOR_BG_CARD }}
+                    style={{ backgroundColor: COLOR_BG_CARD, borderRadius: 20 }}
+                    backgroundStyle={{ backgroundColor: COLOR_BG_CARD, borderRadius: 20 }}
+                >
+                    <View style={styles.bottomSheetHeader}>
+                        <Text style={styles.bottomSheetTitle}>Perhitungan Total {settingFilter.category.label}</Text>
+                    </View>
+                    <BottomSheetView style={styles.contentContainer}>
+                        <View style={styles.bottomSheetContent}>
+                            <View style={styles.bottomSheetRow}>
+                                <Text style={styles.bottomSheetLabel}>Total Pesanan:</Text>
+                                <Text style={styles.bottomSheetValue}>{filteredOrder.length}</Text>
                             </View>
-                        </ScrollView>
-                    </KeyboardAvoidingView>
-                </View>
-            </Modal>
-
-        </BaseScreen >
+                            <View style={styles.bottomSheetRow}>
+                                <Text style={styles.bottomSheetLabel}>Total Harga Pesanan:</Text>
+                                <Text style={styles.bottomSheetValue}>{formatRupiah(grandTotal.toString())}</Text>
+                            </View>
+                            <View style={styles.bottomSheetRow}>
+                                <Text style={styles.bottomSheetLabel}>Total Uang Yang Diterima:</Text>
+                                <Text style={styles.bottomSheetValue}>{formatRupiah(grandTotalActual.toString())}</Text>
+                            </View>
+                            <View style={styles.bottomSheetRow}>
+                                <Text style={styles.bottomSheetLabel}>Sudah Bayar:</Text>
+                                <Text style={styles.bottomSheetValue}>{filteredOrder.filter(item => item.is_payment).length}</Text>
+                            </View>
+                            <View style={styles.bottomSheetRow}>
+                                <Text style={styles.bottomSheetLabel}>Belum Bayar:</Text>
+                                <Text style={styles.bottomSheetValue}>{filteredOrder.filter(item => !item.is_payment).length}</Text>
+                            </View>
+                        </View>
+                    </BottomSheetView>
+                </BottomSheet>
+            </BaseScreen >
+        </GestureHandlerRootView>
     );
 };
 
 const styles = StyleSheet.create({
     fab: {
-        // position: 'absolute',
-        // right: 15,
-        // bottom: 60,
         width: 40,
         height: 40,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: COLOR_PRIMARY,
+        marginHorizontal: 10
+    },
+    contentContainer: {
+        flex: 1,
+        padding: 15,
+        backgroundColor: COLOR_BG_CARD,
+        alignItems: 'center',
     },
     firstColumn: {
         width: 130,
@@ -936,7 +1113,8 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         paddingHorizontal: 10,
         color: COLOR_WHITE_1,
-        flex: 1
+        flex: 1,
+        marginRight: 10
     },
     searchContainer: {
         flexDirection: 'row',
@@ -945,7 +1123,6 @@ const styles = StyleSheet.create({
         marginTop: 10
     },
     filterButton: {
-        marginHorizontal: 10,
         width: 40,
         height: 40,
         borderRadius: 10,
@@ -1006,6 +1183,43 @@ const styles = StyleSheet.create({
         height: 40,
         fontSize: 13,
         color: COLOR_WHITE_1
+    },
+    bottomSheetHeader: {
+        backgroundColor: COLOR_BG_CARD,
+        paddingBottom: 16,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    bottomSheetTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: COLOR_WHITE_1,
+        textAlign: 'center'
+    },
+    bottomSheetContent: {
+        width: '100%',
+        padding: 10,
+    },
+    bottomSheetRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    bottomSheetLabel: {
+        fontSize: 16,
+        color: COLOR_WHITE_1,
+        flex: 1,
+    },
+    bottomSheetValue: {
+        fontSize: 16,
+        color: COLOR_WHITE_1,
+        fontWeight: 'bold',
+        marginLeft: 10,
     },
 });
 
