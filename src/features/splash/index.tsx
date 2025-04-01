@@ -20,7 +20,7 @@ const SplashScreen = ({ navigation }: any) => {
 
     const checkAdminPassword = async () => {
         try {
-            const storedPassword = await AsyncStorage.getItem('adminPassword')
+            const storedPassword = await AsyncStorage.getItem('userData')
             if (storedPassword) {
                 navigation.replace('MainApp')
                 return
