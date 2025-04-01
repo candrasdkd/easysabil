@@ -32,7 +32,10 @@ const configWithMonicon = withMonicon(config, {
     "material-symbols:filter-alt",
     "mdi:checkbox-blank-circle-outline",
     "mdi:checkbox-marked-circle",
-    "material-symbols:content-copy"
+    "material-symbols:content-copy",
+    "mdi:logout",
+    "entypo:eye",
+    "entypo:eye-with-line"
 
   ],
   // Load all icons from the listed collections

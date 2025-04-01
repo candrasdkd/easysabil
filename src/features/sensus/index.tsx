@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, ActivityIndicator, Text, View, TextInput, Modal, TouchableOpacity, Alert } from 'react-native';
 import { Button, DataTable } from 'react-native-paper';
 import { COLOR_BG_CARD, COLOR_DELETE_1, COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1, COLOR_WHITE_2 } from '../../utils/constant';
@@ -9,6 +9,7 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BaseScreen from '../../components/BaseScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
     CreateUser: { dataFamily: DataFamily[] | null };
@@ -27,6 +28,7 @@ const SensusScreen = () => {
     const [itemsPerPage, setItemsPerPage] = useState(20);
     const [searchQuery, setSearchQuery] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
+    const [userLevel, setUserLevel] = useState<number | null>(null);
     const [settingFilter, setSettingFilter] = useState({
         grade: { label: '', value: null },
         family: { label: '', value: null, id: null },
@@ -34,6 +36,23 @@ const SensusScreen = () => {
         gender: { label: '', value: null },
         user_active: true
     })
+
+    useEffect(() => {
+        checkUserLevel();
+    }, []);
+
+    const checkUserLevel = async () => {
+        try {
+            const userDataString = await AsyncStorage.getItem('userData');
+            if (userDataString) {
+                const userData = JSON.parse(userDataString);
+                setUserLevel(userData.level);
+            }
+        } catch (error) {
+            console.error('Error checking user level:', error);
+        }
+    };
+
     const fetchSensus = async () => {
         // handleClear();
         try {
@@ -195,17 +214,17 @@ const SensusScreen = () => {
                         <ScrollView horizontal nestedScrollEnabled>
                             <View>
                                 <DataTable.Header>
-                                    {/* <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader]}>NAME</DataTable.Title> */}
                                     <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>GRADE</DataTable.Title>
                                     <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>GENDER</DataTable.Title>
                                     <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>DOB</DataTable.Title>
                                     <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>AGE</DataTable.Title>
                                     <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 120 }]}>STATUS</DataTable.Title>
-                                    <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 150 }]}>ACTION</DataTable.Title>
+                                    {userLevel === 0 && (
+                                        <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: 150 }]}>ACTION</DataTable.Title>
+                                    )}
                                 </DataTable.Header>
                                 {filteredSensus.slice(from, to).map((item) => (
                                     <DataTable.Row key={item.uuid}>
-                                        {/* <DataTable.Cell textStyle={[styles.firstColumn]}>{item.name}</DataTable.Cell> */}
                                         <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.level}</DataTable.Cell>
                                         <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.gender}</DataTable.Cell>
                                         <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{new Date(item.date_of_birth).toLocaleDateString('id-ID', {
@@ -215,20 +234,22 @@ const SensusScreen = () => {
                                         })}</DataTable.Cell>
                                         <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.age}</DataTable.Cell>
                                         <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>{item.marriage_status}</DataTable.Cell>
-                                        <DataTable.Cell textStyle={[styles.textTable, { width: 150 }]}>
-                                            <View style={{ flexDirection: 'row', width: 150, justifyContent: 'center' }}>
-                                                <TouchableOpacity
-                                                    style={styles.filterButton}
-                                                    onPress={() => navigation.navigate('UpdateUser', { detailUser: item, dataFamily: dataFamily || [] })}>
-                                                    <Monicon name="material-symbols:edit-square-outline" size={25} color={COLOR_WHITE_1} />
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1 }]}
-                                                    onPress={() => handleDeleteUser(item.uuid)}>
-                                                    <Monicon name="material-symbols:delete-outline-sharp" size={25} color={COLOR_WHITE_1} />
-                                                </TouchableOpacity>
-                                            </View>
-                                        </DataTable.Cell>
+                                        {userLevel === 0 && (
+                                            <DataTable.Cell textStyle={[styles.textTable, { width: 150 }]}>
+                                                <View style={{ flexDirection: 'row', width: 150, justifyContent: 'center' }}>
+                                                    <TouchableOpacity
+                                                        style={styles.filterButton}
+                                                        onPress={() => navigation.navigate('UpdateUser', { detailUser: item, dataFamily: dataFamily || [] })}>
+                                                        <Monicon name="material-symbols:edit-square-outline" size={25} color={COLOR_WHITE_1} />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1 }]}
+                                                        onPress={() => handleDeleteUser(item.uuid)}>
+                                                        <Monicon name="material-symbols:delete-outline-sharp" size={25} color={COLOR_WHITE_1} />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </DataTable.Cell>
+                                        )}
                                     </DataTable.Row>
                                 ))}
                             </View>
@@ -258,7 +279,6 @@ const SensusScreen = () => {
                     </View>
                 </View>
             </View>
-
         )
     }
 

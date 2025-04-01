@@ -18,12 +18,13 @@ import UpdateUserScreen from './src/features/updateUser';
 import CategoryOrderScreen from './src/features/categoryOrder';
 import ListOrderScreen from './src/features/listOrder';
 import ListFamilyScreen from './src/features/listFamily';
+import SplashScreen from './src/features/splash';
+import CustomDrawerContent from './src/components/CustomDrawerContent';
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
 function App(): React.JSX.Element {
-
   const SensusStack = () => {
     return (
       <Stack.Navigator>
@@ -33,6 +34,7 @@ function App(): React.JSX.Element {
       </Stack.Navigator>
     );
   };
+
   const OrderStack = () => {
     return (
       <Stack.Navigator>
@@ -42,45 +44,55 @@ function App(): React.JSX.Element {
     );
   };
 
+  const MainApp = () => {
+    return (
+      <Drawer.Navigator
+        drawerContent={(props) => <CustomDrawerContent {...props} />}
+        screenOptions={{
+          headerStyle: { backgroundColor: '#121212' },
+          headerTintColor: '#fff',
+          drawerStyle: { backgroundColor: '#121212' },
+          drawerActiveTintColor: '#fff',
+          drawerInactiveTintColor: '#aaa',
+          drawerLabelStyle: { fontSize: 16 },
+        }}
+      >
+        <Drawer.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ title: 'Dashboard' }}
+        />
+        <Drawer.Screen
+          name="Sensus"
+          component={SensusStack}
+          options={{ title: 'Data Sensus' }}
+        />
+        <Drawer.Screen
+          name="ListOrder"
+          component={ListOrderScreen}
+          options={{ title: 'Daftar Pesanan' }}
+        />
+        <Drawer.Screen
+          name="CategoryOrder"
+          component={CategoryOrderScreen}
+          options={{ title: 'Kategori Pesanan' }}
+        />
+        <Drawer.Screen
+          name="ListFamily"
+          component={ListFamilyScreen}
+          options={{ title: 'Daftar Keluarga' }}
+        />
+      </Drawer.Navigator>
+    );
+  };
+
   return (
     <PaperProvider>
       <NavigationContainer theme={DarkTheme}>
-        <Drawer.Navigator
-          screenOptions={{
-            headerStyle: { backgroundColor: '#121212' },
-            headerTintColor: '#fff',
-            drawerStyle: { backgroundColor: '#121212' },
-            drawerActiveTintColor: '#fff',
-            drawerInactiveTintColor: '#aaa',
-            drawerLabelStyle: { fontSize: 16 },
-          }}
-        >
-          <Drawer.Screen
-            name="Home"
-            component={HomeScreen}
-            options={{ title: 'Dashboard' }}
-          />
-          <Drawer.Screen
-            name="Sensus"
-            component={SensusStack}
-            options={{ title: 'Data Sensus' }}
-          />
-           <Drawer.Screen
-            name="ListOrder"
-            component={ListOrderScreen}
-            options={{ title: 'Daftar Pesanan' }}
-          />
-          <Drawer.Screen
-            name="CategoryOrder"
-            component={CategoryOrderScreen}
-            options={{ title: 'Kategori Pesanan' }}
-          />
-           <Drawer.Screen
-            name="ListFamily"
-            component={ListFamilyScreen}
-            options={{ title: 'Daftar Keluarga' }}
-          />
-        </Drawer.Navigator>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Splash" component={SplashScreen} />
+          <Stack.Screen name="MainApp" component={MainApp} />
+        </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>
   );

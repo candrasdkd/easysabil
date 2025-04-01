@@ -13,6 +13,7 @@ import * as Clipboard from '@react-native-clipboard/clipboard';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ListOrderRouteParams = {
     selectedCategory: SelectedCategoryProps; // Adjust this type based on your actual DataFamily type
@@ -36,6 +37,7 @@ const ListOrderScreen = () => {
     const [showAllData, setShowAllData] = useState(false);
     const [modalUpdate, setModalUpdate] = useState(false);
     const [hidePrice, setHidePrice] = useState(false);
+    const [userLevel, setUserLevel] = useState<number | null>(null);
     const [settingFilter, setSettingFilter] = useState<{
         category: SelectedCategoryProps;
         isPayment: boolean | null;
@@ -343,29 +345,17 @@ const ListOrderScreen = () => {
         setModalCreate(false);
     }
 
-    useFocusEffect(
-        React.useCallback(() => {
-            // if (props.route.params?.refresh) {
-            if (settingFilter.category.id || showAllData) {
-                fetchDataOrder();
+    const checkUserLevel = async () => {
+        try {
+            const userDataString = await AsyncStorage.getItem('userData');
+            if (userDataString) {
+                const userData = JSON.parse(userDataString);
+                setUserLevel(userData.level);
             }
-            // }
-        }, [navigation, settingFilter.category.id, showAllData,])
-    );
-
-    useEffect(() => {
-        fetchSensus();
-        fetchListOrder()
-    }, [])
-
-    useEffect(() => {
-        if (route.params?.selectedCategory) {
-            setSettingFilter(prev => ({
-                ...prev,
-                category: route.params.selectedCategory
-            }));
+        } catch (error) {
+            console.error('Error checking user level:', error);
         }
-    }, [route.params?.selectedCategory]);
+    };
 
     const filteredOrder = dataOrder.filter(item => {
         const matchesSearch = searchQuery === '' || item.user_name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -447,6 +437,31 @@ const ListOrderScreen = () => {
         );
     };
 
+    useFocusEffect(
+        React.useCallback(() => {
+            // if (props.route.params?.refresh) {
+            if (settingFilter.category.id || showAllData) {
+                fetchDataOrder();
+            }
+            // }
+        }, [navigation, settingFilter.category.id, showAllData,])
+    );
+
+    useEffect(() => {
+        fetchSensus();
+        fetchListOrder();
+        checkUserLevel();
+    }, [])
+
+    useEffect(() => {
+        if (route.params?.selectedCategory) {
+            setSettingFilter(prev => ({
+                ...prev,
+                category: route.params.selectedCategory
+            }));
+        }
+    }, [route.params?.selectedCategory]);
+
     const renderContent = () => {
         if (loading) {
             return (
@@ -500,7 +515,9 @@ const ListOrderScreen = () => {
                                         </>
                                     }
                                     <DataTable.Title textStyle={[styles.textHeader, { width: 80 }]}>CATATAN</DataTable.Title>
-                                    <DataTable.Title textStyle={[styles.textHeader, { width: 120 }]}>ACTION</DataTable.Title>
+                                    {userLevel === 0 && (
+                                        <DataTable.Title textStyle={[styles.textHeader, { width: 120 }]}>ACTION</DataTable.Title>
+                                    )}
                                 </DataTable.Header>
                                 <ScrollView>
                                     {filteredOrder.slice(from, to).map((item) => (
@@ -542,43 +559,45 @@ const ListOrderScreen = () => {
                                                 </>
                                             }
                                             <DataTable.Cell textStyle={[styles.textTable, { width: 80 }]}>{item.note}</DataTable.Cell>
-                                            <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>
-                                                <View style={{ flexDirection: 'row', width: 120, justifyContent: 'center' }}>
-                                                    <TouchableOpacity
-                                                        style={styles.filterButton}
-                                                        onPress={() => {
-                                                            setDataUpload(
-                                                                {
-                                                                    idCard: item.id,
-                                                                    user: {
-                                                                        label: item.user_name,
-                                                                        value: item.user_name,
-                                                                        id: item.user_id,
-                                                                    },
-                                                                    category: {
-                                                                        label: item.name_category,
-                                                                        value: item.name_category,
-                                                                        id: item.id_category_order.toString(),
-                                                                        name: item.name_category,
-                                                                        price: item.unit_price.toString()
-                                                                    },
-                                                                    totalOrder: item.total_order.toString(),
-                                                                    note: item.note
-                                                                }
-                                                            )
-                                                            setModalUpdate(true)
-                                                        }}
-                                                    >
-                                                        <Monicon name="material-symbols:edit-square-outline" size={25} color={COLOR_WHITE_1} />
-                                                    </TouchableOpacity>
-                                                    <TouchableOpacity
-                                                        style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1, marginLeft: 5 }]}
-                                                        onPress={() => handleDeleteUser(item.id)}
-                                                    >
-                                                        <Monicon name="material-symbols:delete-outline-sharp" size={25} color={COLOR_WHITE_1} />
-                                                    </TouchableOpacity>
-                                                </View>
-                                            </DataTable.Cell>
+                                            {userLevel === 0 && (
+                                                <DataTable.Cell textStyle={[styles.textTable, { width: 120 }]}>
+                                                    <View style={{ flexDirection: 'row', width: 120, justifyContent: 'center' }}>
+                                                        <TouchableOpacity
+                                                            style={styles.filterButton}
+                                                            onPress={() => {
+                                                                setDataUpload(
+                                                                    {
+                                                                        idCard: item.id,
+                                                                        user: {
+                                                                            label: item.user_name,
+                                                                            value: item.user_name,
+                                                                            id: item.user_id,
+                                                                        },
+                                                                        category: {
+                                                                            label: item.name_category,
+                                                                            value: item.name_category,
+                                                                            id: item.id_category_order.toString(),
+                                                                            name: item.name_category,
+                                                                            price: item.unit_price.toString()
+                                                                        },
+                                                                        totalOrder: item.total_order.toString(),
+                                                                        note: item.note
+                                                                    }
+                                                                )
+                                                                setModalUpdate(true)
+                                                            }}
+                                                        >
+                                                            <Monicon name="material-symbols:edit-square-outline" size={25} color={COLOR_WHITE_1} />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity
+                                                            style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1, marginLeft: 5 }]}
+                                                            onPress={() => handleDeleteUser(item.id)}
+                                                        >
+                                                            <Monicon name="material-symbols:delete-outline-sharp" size={25} color={COLOR_WHITE_1} />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </DataTable.Cell>
+                                            )}
                                         </DataTable.Row>
                                     ))}
                                 </ScrollView>
@@ -728,14 +747,14 @@ const ListOrderScreen = () => {
                             </View>
                             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15 }}>
                                 <Button
-                                    onPress={() => !uploading ? handleResetPayment : null}
+                                    onPress={() => !uploading ? handleResetPayment() : null}
                                     textColor={COLOR_PRIMARY}>
                                     Tutup
                                 </Button>
                                 <Button
                                     mode='contained'
                                     buttonColor={COLOR_PRIMARY}
-                                    onPress={() => !uploading ? handleUpdateOrder : null}
+                                    onPress={() => !uploading ? handleUpdateOrder() : null}
                                     textColor={COLOR_WHITE_1}>
                                     Update
                                 </Button>

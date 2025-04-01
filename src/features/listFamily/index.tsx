@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, ActivityIndicator, Text, View, TextInput, Modal, TouchableOpacity, Alert } from 'react-native';
 import { Button, DataTable } from 'react-native-paper';
 import { COLOR_BG_CARD, COLOR_DELETE_1, COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1, COLOR_WHITE_2 } from '../../utils/constant';
@@ -10,6 +10,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BaseScreen from '../../components/BaseScreen';
 import { windowWidth } from '../../utils/helper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
     CreateUser: { dataFamily: DataFamily[] | null };
@@ -28,7 +29,7 @@ const ListFamilyScreen = () => {
     const [itemsPerPage, setItemsPerPage] = useState(20);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedId, setSelectedId] = useState<number | null>(null);
-
+    const [userLevel, setUserLevel] = useState<number | null>(null);
     const [showModalCreate, setShowModalCreate] = useState(false);
     const [showModalUpdate, setShowModalUpdate] = useState(false);
     const [settingFilter, setSettingFilter] = useState({
@@ -169,6 +170,17 @@ const ListFamilyScreen = () => {
         });
     }
 
+    const checkUserLevel = async () => {
+        try {
+            const userDataString = await AsyncStorage.getItem('userData');
+            if (userDataString) {
+                const userData = JSON.parse(userDataString);
+                setUserLevel(userData.level);
+            }
+        } catch (error) {
+            console.error('Error checking user level:', error);
+        }
+    };
     useFocusEffect(
         useCallback(() => {
             // if (props.route.params?.refresh) {
@@ -176,6 +188,11 @@ const ListFamilyScreen = () => {
             // }
         }, [navigation, settingFilter.user_active])
     );
+
+    useEffect(() => {
+        checkUserLevel();
+    }, [])
+
 
     const filteredFamily = listFamily.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -217,32 +234,36 @@ const ListFamilyScreen = () => {
                     <DataTable>
                         <DataTable.Header>
                             <DataTable.Title textStyle={[styles.textTable, styles.textHeader, { width: windowWidth / 10 }]}>ID</DataTable.Title>
-                            <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader]}>KELUARGA</DataTable.Title>
-                            <DataTable.Title textStyle={[styles.textTable, styles.textHeader]}>ACTION</DataTable.Title>
+                            <DataTable.Title textStyle={[styles.firstColumn, styles.textHeader, { width: userLevel === 0 ? windowWidth / 2 : windowWidth - 50 }]}>KELUARGA</DataTable.Title>
+                            {userLevel === 0 && (
+                                <DataTable.Title textStyle={[styles.textTable, styles.textHeader]}>ACTION</DataTable.Title>
+                            )}
                         </DataTable.Header>
                         <ScrollView>
                             {filteredFamily.slice(from, to).map((item) => (
                                 <DataTable.Row key={item.id}>
                                     <DataTable.Cell textStyle={[styles.textTable, { width: windowWidth / 10 }]}>{item.id}</DataTable.Cell>
-                                    <DataTable.Cell textStyle={[styles.firstColumn]}>{item.name}</DataTable.Cell>
-                                    <DataTable.Cell textStyle={[styles.textTable]}>
-                                        <View style={{ flexDirection: 'row' }}>
-                                            <TouchableOpacity
-                                                style={styles.filterButton}
-                                                onPress={() => {
-                                                    setFamilyName(item.name)
-                                                    setSelectedId(item.id)
-                                                    setShowModalUpdate(true)
-                                                }}>
-                                                <Monicon name="material-symbols:edit-square-outline" size={25} color={COLOR_WHITE_1} />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1 }]}
-                                                onPress={() => handleDeleteUser(item.id)}>
-                                                <Monicon name="material-symbols:delete-outline-sharp" size={25} color={COLOR_WHITE_1} />
-                                            </TouchableOpacity>
-                                        </View>
-                                    </DataTable.Cell>
+                                    <DataTable.Cell textStyle={[styles.firstColumn, { width: userLevel === 0 ? windowWidth / 2 : windowWidth - 50 }]}>{item.name}</DataTable.Cell>
+                                    {userLevel === 0 && (
+                                        <DataTable.Cell textStyle={[styles.textTable]}>
+                                            <View style={{ flexDirection: 'row' }}>
+                                                <TouchableOpacity
+                                                    style={styles.filterButton}
+                                                    onPress={() => {
+                                                        setFamilyName(item.name)
+                                                        setSelectedId(item.id)
+                                                        setShowModalUpdate(true)
+                                                    }}>
+                                                    <Monicon name="material-symbols:edit-square-outline" size={25} color={COLOR_WHITE_1} />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[styles.filterButton, { backgroundColor: COLOR_DELETE_1 }]}
+                                                    onPress={() => handleDeleteUser(item.id)}>
+                                                    <Monicon name="material-symbols:delete-outline-sharp" size={25} color={COLOR_WHITE_1} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </DataTable.Cell>
+                                    )}
                                 </DataTable.Row>
                             ))}
                         </ScrollView>
@@ -394,7 +415,6 @@ const styles = StyleSheet.create({
         backgroundColor: COLOR_PRIMARY,
     },
     firstColumn: {
-        width: windowWidth / 2,
         color: COLOR_WHITE_1,
     },
     textHeader: {

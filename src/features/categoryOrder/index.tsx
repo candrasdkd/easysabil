@@ -9,6 +9,7 @@ import { DataCategory, DataFamily, DataFolder, SelectedCategoryProps } from '../
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatRupiah, ios } from '../../utils/helper';
 import BaseScreen from '../../components/BaseScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
     CreateCategoryOrder: { dataFamily: DataFamily[] | null };
@@ -32,6 +33,7 @@ const CategoryOrder = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [modalUpdate, setModalUpdate] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [userLevel, setUserLevel] = useState<number | null>(null);
     const [bodyUser, setBodyUser] = useState({
         category: '',
         year: today.getFullYear(),
@@ -198,9 +200,26 @@ const CategoryOrder = () => {
         setModalVisible(false);
     };
 
+    useEffect(() => {
+        checkUserLevel();
+    }, []);
+
+    const checkUserLevel = async () => {
+        try {
+            const userDataString = await AsyncStorage.getItem('userData');
+            if (userDataString) {
+                const userData = JSON.parse(userDataString);
+                setUserLevel(userData.level);
+            }
+        } catch (error) {
+            console.error('Error checking user level:', error);
+        }
+    };
+
     useFocusEffect(
         React.useCallback(() => {
             fetchListOrder();
+            checkUserLevel();
         }, [])
     );
 
@@ -216,7 +235,6 @@ const CategoryOrder = () => {
             setFilteredData(filtered);
         }
     }, [searchQuery, dataFolder]);
-console.log(dataFolder);
 
     return (
         <BaseScreen>
@@ -290,34 +308,38 @@ console.log(dataFolder);
                                 titleStyle={{ color: COLOR_WHITE_1 }}
                                 subtitleStyle={{ color: COLOR_WHITE_1 }}
                                 right={() =>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <TouchableOpacity
-                                            onPress={() => {
-                                                setModalUpdate(!modalUpdate)
-                                                setDetailData({ id: item.id })
-                                                setBodyUser({
-                                                    ...bodyUser,
-                                                    category: item.name,
-                                                    formatRupiah: item.formatRupiah || '0',
-                                                    year: item.year
-                                                })
-                                            }}
-                                        >
-                                            <Monicon
-                                                name="material-symbols:edit-square-outline"
-                                                size={20}
-                                                color={COLOR_TEXT_BODY}
-                                            />
-                                        </TouchableOpacity>
-                                        <View style={{ width: 5 }} />
-                                        <TouchableOpacity onPress={() => handleDeleteCategory(item.id)}>
-                                            <Monicon
-                                                name="material-symbols:delete-outline-sharp"
-                                                size={20}
-                                                color={COLOR_DELETE_1}
-                                            />
-                                        </TouchableOpacity>
-                                    </View>
+                                    <>
+                                        {userLevel === 0 && (
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        setModalUpdate(!modalUpdate)
+                                                        setDetailData({ id: item.id })
+                                                        setBodyUser({
+                                                            ...bodyUser,
+                                                            category: item.name,
+                                                            formatRupiah: item.formatRupiah || '0',
+                                                            year: item.year
+                                                        })
+                                                    }}
+                                                >
+                                                    <Monicon
+                                                        name="material-symbols:edit-square-outline"
+                                                        size={20}
+                                                        color={COLOR_TEXT_BODY}
+                                                    />
+                                                </TouchableOpacity>
+                                                <View style={{ width: 5 }} />
+                                                <TouchableOpacity onPress={() => handleDeleteCategory(item.id)}>
+                                                    <Monicon
+                                                        name="material-symbols:delete-outline-sharp"
+                                                        size={20}
+                                                        color={COLOR_DELETE_1}
+                                                    />
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+                                    </>
                                 }
                             />
                         </TouchableOpacity>
