@@ -96,7 +96,7 @@ const UpdateUser = () => {
                     <Text style={{ color: COLOR_TEXT_BODY, fontSize: 12 }}>• Dewasa: 30 Tahun Keatas/Sudah menikah</Text>
                 </View>
             </View>
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: ios ? 20 : 0, paddingTop: 20 }}>
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150, paddingTop: 20 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                     <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Aktif?</Text>
                     <Switch

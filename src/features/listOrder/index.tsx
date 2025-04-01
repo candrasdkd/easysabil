@@ -65,7 +65,7 @@ const ListOrderScreen = () => {
     });
     // ref
     const bottomSheetRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ['25%', '50%'], []);
+    const snapPoints = useMemo(() => ['25%', '50%', '70%'], []);
 
     // callbacks
     const handleSheetChanges = useCallback((index: number) => {
@@ -964,7 +964,7 @@ const ListOrderScreen = () => {
                                         <View style={{ justifyContent: 'space-around', marginBottom: 10, paddingTop: 5, marginLeft: 5 }}>
                                             <TouchableOpacity
                                                 style={{ alignItems: 'center', flexDirection: 'row', marginBottom: 5 }}
-                                                onPress={() => setSettingFilter({ ...settingFilter, isPayment: settingFilter.isPayment === false ? null : settingFilter.isPayment })}>
+                                                onPress={() => setSettingFilter({ ...settingFilter, isPayment: settingFilter.isPayment === false ? null : false })}>
                                                 <Monicon
                                                     name={settingFilter.isPayment === false ? "mdi:checkbox-marked-circle" : "mdi:checkbox-blank-circle-outline"}
                                                     size={20}
@@ -975,7 +975,7 @@ const ListOrderScreen = () => {
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 style={{ alignItems: 'center', flexDirection: 'row' }}
-                                                onPress={() => setSettingFilter({ ...settingFilter, isPayment: settingFilter.isPayment === true ? null : settingFilter.isPayment })}>
+                                                onPress={() => setSettingFilter({ ...settingFilter, isPayment: settingFilter.isPayment === true ? null : true })}>
                                                 <Monicon
                                                     name={settingFilter.isPayment === true ? "mdi:checkbox-marked-circle" : "mdi:checkbox-blank-circle-outline"}
                                                     size={20}
