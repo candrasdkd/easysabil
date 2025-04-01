@@ -38,7 +38,7 @@ const SensusScreen = () => {
         // handleClear();
         try {
             const { data, error } = await supabase
-                .from('sensus')
+                .from('list_sensus')
                 .select('*')
                 .order('name', { ascending: true })
                 .eq('is_active', settingFilter.user_active);
@@ -59,7 +59,7 @@ const SensusScreen = () => {
     const fetchDataFamily = async () => {
         try {
             const { data, error } = await supabase
-                .from('category_family')
+                .from('list_family')
                 .select('id, name')
                 .order('name', { ascending: true });
             if (error) {
@@ -96,7 +96,7 @@ const SensusScreen = () => {
                     text: "Hapus",
                     onPress: async () => {
                         const { error, status } = await supabase
-                            .from('sensus')
+                            .from('list_sensus')
                             .delete()
                             .eq('uuid', id);
 

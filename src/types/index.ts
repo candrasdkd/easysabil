@@ -13,6 +13,12 @@ export interface DataSensus {
     is_active: boolean;
 }
 
+export interface ListFamilyProps {
+    id: number;
+    created_at: Date;
+    name: string;
+}
+
 export interface DataOrder {
     id: number;
     created_at: Date;

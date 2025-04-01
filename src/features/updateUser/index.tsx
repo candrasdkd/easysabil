@@ -53,7 +53,7 @@ const UpdateUser = () => {
                 is_active: bodyUser.active,
             };
 
-            const { error } = await supabase.from('sensus').update(transformBody).eq('uuid', id);
+            const { error } = await supabase.from('list_sensus').update(transformBody).eq('uuid', id);
             if (error) throw error;
 
             Alert.alert('Berhasil', 'Data berhasil diedit');

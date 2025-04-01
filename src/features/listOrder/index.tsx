@@ -107,13 +107,13 @@ const ListOrderScreen = () => {
             setLoading(true)
             if (settingFilter.category.id && !showAllData) {
                 response = await supabase
-                    .from('data_order')
+                    .from('list_order')
                     .select('*')
                     .eq('id_category_order', settingFilter.category.id)
                     .order('created_at', { ascending: false });
             } else {
                 response = await supabase
-                    .from('data_order')
+                    .from('list_order')
                     .select('*')
                     .order('created_at', { ascending: false });
             }
@@ -141,7 +141,7 @@ const ListOrderScreen = () => {
         // handleClear();
         try {
             const { data, error } = await supabase
-                .from('sensus')
+                .from('list_sensus')
                 .select('uuid,name')
                 .order('name', { ascending: true });
             if (error) {
@@ -203,7 +203,7 @@ const ListOrderScreen = () => {
             };
 
             const { error, status } = await supabase
-                .from('data_order')
+                .from('list_order')
                 .update(transformBody)
                 .eq('id', detailData?.id)
                 .select();
@@ -244,7 +244,7 @@ const ListOrderScreen = () => {
             setUploading(true);
             if (modalUpdate) {
                 const { error, status } = await supabase
-                    .from('data_order')
+                    .from('list_order')
                     .update(transformBody)
                     .eq('id', dataUpload.idCard)
                     .select();
@@ -257,7 +257,7 @@ const ListOrderScreen = () => {
                 }
             } else {
                 const { error, status } = await supabase
-                    .from('data_order')
+                    .from('list_order')
                     .insert([transformBody])
                     .select();
                 if (status === 201) {
@@ -289,7 +289,7 @@ const ListOrderScreen = () => {
                     text: "Hapus",
                     onPress: async () => {
                         const { error, status } = await supabase
-                            .from('data_order')
+                            .from('list_order')
                             .delete()
                             .eq('id', id);
 
@@ -728,14 +728,14 @@ const ListOrderScreen = () => {
                             </View>
                             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15 }}>
                                 <Button
-                                    onPress={handleResetPayment}
+                                    onPress={() => !uploading ? handleResetPayment : null}
                                     textColor={COLOR_PRIMARY}>
                                     Tutup
                                 </Button>
                                 <Button
                                     mode='contained'
                                     buttonColor={COLOR_PRIMARY}
-                                    onPress={handleUpdateOrder}
+                                    onPress={() => !uploading ? handleUpdateOrder : null}
                                     textColor={COLOR_WHITE_1}>
                                     Update
                                 </Button>

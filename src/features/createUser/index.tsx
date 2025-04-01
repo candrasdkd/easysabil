@@ -75,8 +75,8 @@ const CreateUser = () => {
                 id_family: bodyUser?.family.id,
                 family_name: bodyUser?.family.label
             }
-            const { data, error, status, statusText } = await supabase
-                .from('sensus')
+            const { error, status } = await supabase
+                .from('list_sensus')
                 .insert([
                     transformBody
                 ])
@@ -215,13 +215,13 @@ const CreateUser = () => {
                         const today = new Date();
                         let years = today.getFullYear() - birthDate.getFullYear();
                         let months = today.getMonth() - birthDate.getMonth();
-                        
+
                         // Adjust for negative months
                         if (months < 0) {
                             years--;
                             months += 12;
                         }
-                        
+
                         // Adjust if birthday hasn't occurred this month
                         if (today.getDate() < birthDate.getDate()) {
                             months--;
@@ -230,7 +230,7 @@ const CreateUser = () => {
                                 months += 12;
                             }
                         }
-                        
+
                         return `${years} Tahun ${months} Bulan`;
                     })() : ''}
                     style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: 'gray' }]}

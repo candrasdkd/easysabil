@@ -167,7 +167,7 @@ const HomeScreen = () => {
     const fetchSensus = async () => {
       try {
         const { data, error } = await supabase
-          .from('sensus')
+          .from('list_sensus')
           .select('uuid, gender, level, marriage_status')
           .eq('is_active', true);
 
