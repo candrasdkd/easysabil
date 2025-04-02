@@ -59,6 +59,7 @@ const SensusScreen = () => {
     const fetchSensus = async () => {
         // handleClear();
         try {
+            setLoading(true);
             const { data, error } = await supabase
                 .from('list_sensus')
                 .select('*')

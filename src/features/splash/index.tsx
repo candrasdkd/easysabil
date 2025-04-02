@@ -1,6 +1,6 @@
 import { Image, Modal, SafeAreaView, StyleSheet, Text, TextInput, View, ScrollView, TouchableOpacity } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import { COLOR_PRIMARY } from '../../utils/constant'
+import { COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1 } from '../../utils/constant'
 import { windowHeight, windowWidth } from '../../utils/helper'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Button } from 'react-native-paper'
@@ -8,11 +8,11 @@ import { supabase } from '../../config'
 import Monicon from '@monicon/native'
 
 const SplashScreen = ({ navigation }: any) => {
-    const [showModal, setShowModal] = useState(false)
-    const [password, setPassword] = useState('')
-    const [error, setError] = useState('')
-    const [loading, setLoading] = useState(false)
-    const [showPassword, setShowPassword] = useState(false)
+    const [showModal, setShowModal] = useState(false);
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         checkAdminPassword()
@@ -107,6 +107,7 @@ const SplashScreen = ({ navigation }: any) => {
                                     value={password}
                                     onChangeText={setPassword}
                                     autoFocus
+                                    autoCapitalize='none'
                                 />
                                 <TouchableOpacity
                                     onPress={() => setShowPassword(!showPassword)}
@@ -118,11 +119,12 @@ const SplashScreen = ({ navigation }: any) => {
                             {error ? <Text style={styles.errorText}>{error}</Text> : null}
                             <Button
                                 mode="contained"
-                                onPress={handleLogin}
+                                onPress={() => !loading ? handleLogin() : null}
                                 style={styles.button}
-                                buttonColor={COLOR_PRIMARY}
+                                textColor={COLOR_WHITE_1}
                                 loading={loading}
-                                disabled={loading}
+                                // disabled={loading}
+                                buttonColor={loading ? COLOR_TEXT_BODY : COLOR_PRIMARY}
                             >
                                 Masuk
                             </Button>
