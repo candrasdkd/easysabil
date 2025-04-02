@@ -22,6 +22,8 @@ const UpdateUser = () => {
     const [uploading, setUploading] = useState(false);
     const [bodyUser, setBodyUser] = useState({
         active: detailUser.is_active,
+        duafa: detailUser.is_duafa,
+        educate: detailUser.is_educate,
         fullname: detailUser.name,
         dob: detailUser.date_of_birth ? detailUser.date_of_birth : '',
         gender: { label: detailUser.gender, value: detailUser.gender },
@@ -29,6 +31,7 @@ const UpdateUser = () => {
         family: { label: detailUser.family_name, value: detailUser.family_name, id: detailUser.id_family },
         marriage: { label: detailUser.marriage_status, value: detailUser.marriage_status },
     });
+    console.log('bodyUser', bodyUser);
 
     const handleUpdateUser = async (id: string) => {
         try {
@@ -51,7 +54,10 @@ const UpdateUser = () => {
                 id_family: bodyUser.family.id,
                 family_name: bodyUser.family.label,
                 is_active: bodyUser.active,
+                is_duafa: bodyUser.duafa,
+                is_educate: bodyUser.educate,
             };
+            console.log('transformBody', transformBody);
 
             const { error } = await supabase.from('list_sensus').update(transformBody).eq('uuid', id);
             if (error) throw error;
@@ -103,6 +109,22 @@ const UpdateUser = () => {
                         color={COLOR_PRIMARY}
                         value={bodyUser.active}
                         onValueChange={() => setBodyUser({ ...bodyUser, active: !bodyUser.active })}
+                    />
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Dalam Binaan?</Text>
+                    <Switch
+                        color={COLOR_PRIMARY}
+                        value={bodyUser.educate}
+                        onValueChange={() => setBodyUser({ ...bodyUser, educate: !bodyUser.educate })}
+                    />
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Duafa?</Text>
+                    <Switch
+                        color={COLOR_PRIMARY}
+                        value={bodyUser.duafa}
+                        onValueChange={() => setBodyUser({ ...bodyUser, duafa: !bodyUser.duafa })}
                     />
                 </View>
                 <Text style={{ color: COLOR_WHITE_1 }}>Dari Keluarga</Text>

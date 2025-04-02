@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, ActivityIndicator, Text, View, TextInput, Modal, TouchableOpacity, Alert, Platform } from 'react-native';
-import { Button, DataTable } from 'react-native-paper';
+import { Button, DataTable, Switch } from 'react-native-paper';
 import { COLOR_BG_CARD, COLOR_DELETE_1, COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1, COLOR_WHITE_2 } from '../../utils/constant';
 import { DataFamily, DataSensus } from '../../types/';
 import { supabase } from '../../config';
@@ -37,7 +37,9 @@ const SensusScreen = () => {
         family: { label: '', value: null, id: null },
         marriage: { label: '', value: null },
         gender: { label: '', value: null },
-        user_active: true
+        user_active: true,
+        user_educate: false,
+        user_duafa: false
     })
 
     useEffect(() => {
@@ -149,6 +151,8 @@ const SensusScreen = () => {
             marriage: { label: '', value: null },
             gender: { label: '', value: null },
             user_active: true,
+            user_educate: false,
+            user_duafa: false
         });
     }
 
@@ -158,7 +162,7 @@ const SensusScreen = () => {
             fetchSensus();
             fetchDataFamily();
             // }
-        }, [navigation, settingFilter.user_active])
+        }, [navigation])
     );
 
     const filteredSensus = sensus.filter(item => {
@@ -167,8 +171,10 @@ const SensusScreen = () => {
         const matchesFamily = settingFilter.family.id ? item.id_family === settingFilter.family.id : true;
         const matchesMarriage = settingFilter.marriage.value ? item.marriage_status === settingFilter.marriage.value : true;
         const matchesGender = settingFilter.gender.value ? item.gender === settingFilter.gender.value : true;
-
-        return matchesSearch && matchesGrade && matchesFamily && matchesMarriage && matchesGender;
+        const matchesActiveStatus = settingFilter.user_active ? item.is_active === settingFilter.user_active : true;
+        const matchesDuafa = settingFilter.user_duafa ? item.is_duafa === settingFilter.user_duafa : true;
+        const matchesBinaan = settingFilter.user_educate ? item.is_educate === settingFilter.user_educate : true;
+        return matchesSearch && matchesGrade && matchesFamily && matchesMarriage && matchesGender && matchesActiveStatus && matchesDuafa && matchesBinaan;
     });
 
 
@@ -421,6 +427,8 @@ const SensusScreen = () => {
                                         marriage: { label: '', value: null },
                                         gender: { label: '', value: null },
                                         user_active: true,
+                                        user_educate: false,
+                                        user_duafa: false
                                     })
                                     setPage(0)
                                 }}
@@ -537,30 +545,30 @@ const SensusScreen = () => {
                                     });
                                 }}
                             />
-                            <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Status Anggota</Text>
-                            <View style={{ justifyContent: 'space-around', marginBottom: 10, paddingTop: 5, marginLeft: 5 }}>
-                                <TouchableOpacity
-                                    style={{ alignItems: 'center', flexDirection: 'row', marginBottom: 5 }}
-                                    onPress={() => setSettingFilter({ ...settingFilter, user_active: false })}>
-                                    <Monicon
-                                        name={settingFilter.user_active === false ? "mdi:checkbox-marked-circle" : "mdi:checkbox-blank-circle-outline"}
-                                        size={20}
-                                        color={settingFilter.user_active === false ? COLOR_PRIMARY : COLOR_WHITE_1}
-                                    />
-                                    <Text style={{ color: COLOR_WHITE_1, marginLeft: 10 }}>Tidak Aktif</Text>
 
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={{ alignItems: 'center', flexDirection: 'row' }}
-                                    onPress={() => setSettingFilter({ ...settingFilter, user_active: true })}>
-                                    <Monicon
-                                        name={settingFilter.user_active === true ? "mdi:checkbox-marked-circle" : "mdi:checkbox-blank-circle-outline"}
-                                        size={20}
-                                        color={settingFilter.user_active === true ? COLOR_PRIMARY : COLOR_WHITE_1}
-                                    />
-                                    <Text style={{ color: COLOR_WHITE_1, marginLeft: 10 }}>Aktif</Text>
-                                </TouchableOpacity>
-
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                                <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Aktif?</Text>
+                                <Switch
+                                    color={COLOR_PRIMARY}
+                                    value={settingFilter.user_active}
+                                    onValueChange={() => setSettingFilter({ ...settingFilter, user_active: !settingFilter.user_active })}
+                                />
+                            </View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                                <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Duafa?</Text>
+                                <Switch
+                                    color={COLOR_PRIMARY}
+                                    value={settingFilter.user_duafa}
+                                    onValueChange={() => setSettingFilter({ ...settingFilter, user_duafa: !settingFilter.user_duafa })}
+                                />
+                            </View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                                <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Binaan?</Text>
+                                <Switch
+                                    color={COLOR_PRIMARY}
+                                    value={settingFilter.user_educate}
+                                    onValueChange={() => setSettingFilter({ ...settingFilter, user_educate: !settingFilter.user_educate })}
+                                />
                             </View>
                         </View>
 

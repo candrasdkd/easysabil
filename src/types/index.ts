@@ -11,6 +11,9 @@ export interface DataSensus {
     family_name: string;
     id_family: number;
     is_active: boolean;
+    is_educate: boolean;
+    is_duafa: boolean;
+    is_binaan: boolean;
 }
 
 export interface ListFamilyProps {
@@ -59,7 +62,7 @@ export interface SelectedCategoryProps {
     label: string;
     value: string;
     id: string;
-    name:string;
+    name: string;
     price: string;
 }
 

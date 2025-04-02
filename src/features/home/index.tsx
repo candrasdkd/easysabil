@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, View, Text, StatusBar, TouchableOpacity, Alert, Platform, Linking, Animated } from 'react-native';
 import { supabase } from '../../config';
 import CardComponent from '../../components/Card';
-import { ios } from '../../utils/helper';
 import { useNavigation } from '@react-navigation/native';
 import Monicon from '@monicon/native';
 import { COLOR_PRIMARY, COLOR_WHITE_1 } from '../../utils/constant';
@@ -11,10 +10,6 @@ import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 
-const dataToExport = [
-  { nama: 'Budi', usia: 25 },
-  { nama: 'Siti', usia: 30 },
-];
 const HomeScreen = () => {
   const navigation = useNavigation()
   const [loading, setLoading] = useState(true);
@@ -44,6 +39,9 @@ const HomeScreen = () => {
     totalMarriage: number;
     totalWidower: number;
     totalWidow: number;
+    totalKK: number;
+    totalDuafa: number;
+    totalEducate: number;
   }>({
     totalUsers: 0,
     totalAdult: 0,
@@ -69,6 +67,9 @@ const HomeScreen = () => {
     totalMarriage: 0,
     totalWidower: 0,
     totalWidow: 0,
+    totalKK: 0,
+    totalDuafa: 0,
+    totalEducate: 0,
   })
   const [open, setOpen] = useState(false);
   const animation = useState(new Animated.Value(0))[0];
@@ -84,11 +85,12 @@ const HomeScreen = () => {
 
   const copyHeader = async () => {
     const headerString = `
-📊 STATISTIK SENSUS KELOMPOK 1 📊
+📊 *STATISTIK SENSUS KELOMPOK 1* 📊
 
 👥 Total Anggota: ${count.totalUsers} orang
+👥 Total Kepala Keluarga: ${count.totalKK} KK
 
-🏷️ Berdasarkan Kategori:
+🏷️ *BERDASARKAN KATEGORI*:
 ━━━━━━━━━━━━━━━━━━━━━
 📌 Dewasa: ${count.totalAdult} orang
    • Laki-laki: ${count.totalAdultMen}
@@ -114,17 +116,21 @@ const HomeScreen = () => {
    • Laki-laki: ${count.totalBalitaMen}
    • Perempuan: ${count.totalBalitaWomen}
 
-👤 Total Berdasarkan Gender:
+👤 *TOTAL JENIS KELAMIN*:
 ━━━━━━━━━━━━━━━━━━━━━
 👨 Laki-laki: ${count.totalMen} orang
 👩 Perempuan: ${count.totalWomen} orang
 
-💑 Status Pernikahan:
+💑 *STATUS PERNIKAHAN:*
 ━━━━━━━━━━━━━━━━━━━━━
 👫 Menikah: ${count.totalMarriage} orang
 👨 Duda: ${count.totalWidower} orang
 👩 Janda: ${count.totalWidow} orang
-`;
+
+📋 *STATUS KHUSUS:*
+━━━━━━━━━━━━━━━━━━━━━
+🎓 Binaan: ${count.totalEducate} orang
+🤲 Duafa: ${count.totalDuafa} orang`;
     Clipboard.default.setString(headerString);
     Alert.alert(
       'Berhasil',
@@ -271,59 +277,76 @@ const HomeScreen = () => {
     }
   };
 
+  const fetchSensus = async () => {
+    try {
+      setLoading(true);
+      // Fetch both family and sensus data in parallel
+      const [familyResponse, sensusResponse] = await Promise.all([
+        supabase
+          .from('list_family')
+          .select('id'),
+        supabase
+          .from('list_sensus')
+          .select('uuid, gender, level, marriage_status, is_duafa, is_educate')
+          .eq('is_active', true)
+      ]);
 
+      // Handle family data
+      if (familyResponse.error) {
+        console.error('Family Error:', familyResponse.error.message);
+        return;
+      }
+      const totalKK = familyResponse.data?.length - 1 || 0;
+
+      // Handle sensus data
+      if (sensusResponse.error) {
+        setError(sensusResponse.error.message);
+        console.error('Sensus Error:', sensusResponse.error.message);
+        return;
+      }
+
+      // Count data by level
+      if (sensusResponse.data) {
+        const counts = {
+          totalKK,
+          totalUsers: sensusResponse.data.length,
+          totalAdult: sensusResponse.data.filter(item => item.level === 'Dewasa').length,
+          totalAdultWomen: sensusResponse.data.filter(item => item.level === 'Dewasa' && item.gender === 'Perempuan').length,
+          totalAdultMen: sensusResponse.data.filter(item => item.level === 'Dewasa' && item.gender === 'Laki - Laki').length,
+          totalPraNikah: sensusResponse.data.filter(item => item.level === 'Pra Nikah').length,
+          totalPraNikahWomen: sensusResponse.data.filter(item => item.level === 'Pra Nikah' && item.gender === 'Perempuan').length,
+          totalPraNikahMen: sensusResponse.data.filter(item => item.level === 'Pra Nikah' && item.gender === 'Laki - Laki').length,
+          totalRemaja: sensusResponse.data.filter(item => item.level === 'Remaja').length,
+          totalRemajaWomen: sensusResponse.data.filter(item => item.level === 'Remaja' && item.gender === 'Perempuan').length,
+          totalRemajaMen: sensusResponse.data.filter(item => item.level === 'Remaja' && item.gender === 'Laki - Laki').length,
+          totalPraRemaja: sensusResponse.data.filter(item => item.level === 'Pra Remaja').length,
+          totalPraRemajaWomen: sensusResponse.data.filter(item => item.level === 'Pra Remaja' && item.gender === 'Perempuan').length,
+          totalPraRemajaMen: sensusResponse.data.filter(item => item.level === 'Pra Remaja' && item.gender === 'Laki - Laki').length,
+          totalCabeRawit: sensusResponse.data.filter(item => item.level === 'Cabe Rawit').length,
+          totalCabeRawitWomen: sensusResponse.data.filter(item => item.level === 'Cabe Rawit' && item.gender === 'Perempuan').length,
+          totalCabeRawitMen: sensusResponse.data.filter(item => item.level === 'Cabe Rawit' && item.gender === 'Laki - Laki').length,
+          totalBalita: sensusResponse.data.filter(item => item.level === 'Balita').length,
+          totalBalitaWomen: sensusResponse.data.filter(item => item.level === 'Balita' && item.gender === 'Perempuan').length,
+          totalBalitaMen: sensusResponse.data.filter(item => item.level === 'Balita' && item.gender === 'Laki - Laki').length,
+          totalMen: sensusResponse.data.filter(item => item.gender === 'Laki - Laki').length,
+          totalWomen: sensusResponse.data.filter(item => item.gender === 'Perempuan').length,
+          totalMarriage: sensusResponse.data.filter(item => item.marriage_status === 'Menikah').length,
+          totalWidower: sensusResponse.data.filter(item => item.marriage_status === 'Duda').length,
+          totalWidow: sensusResponse.data.filter(item => item.marriage_status === 'Janda').length,
+          totalDuafa: sensusResponse.data.filter(item => item.is_duafa === true).length,
+          totalEducate: sensusResponse.data.filter(item => item.is_educate === true).length,
+        };
+        setCount({ ...count, ...counts });
+      }
+    } catch (e) {
+      console.error('Fetch error:', e);
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchSensus = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('list_sensus')
-          .select('uuid, gender, level, marriage_status')
-          .eq('is_active', true);
-
-        if (error) {
-          setError(error.message);
-          console.error('Error:', error.message);
-          return;
-        }
-        // Count data by level
-        if (data) {
-          const counts = {
-            totalUsers: data.length,
-            totalAdult: data.filter(item => item.level === 'Dewasa').length,
-            totalAdultWomen: data.filter(item => item.level === 'Dewasa' && item.gender === 'Perempuan').length,
-            totalAdultMen: data.filter(item => item.level === 'Dewasa' && item.gender === 'Laki - Laki').length,
-            totalPraNikah: data.filter(item => item.level === 'Pra Nikah').length,
-            totalPraNikahWomen: data.filter(item => item.level === 'Pra Nikah' && item.gender === 'Perempuan').length,
-            totalPraNikahMen: data.filter(item => item.level === 'Pra Nikah' && item.gender === 'Laki - Laki').length,
-            totalRemaja: data.filter(item => item.level === 'Remaja').length,
-            totalRemajaWomen: data.filter(item => item.level === 'Remaja' && item.gender === 'Perempuan').length,
-            totalRemajaMen: data.filter(item => item.level === 'Remaja' && item.gender === 'Laki - Laki').length,
-            totalPraRemaja: data.filter(item => item.level === 'Pra Remaja').length,
-            totalPraRemajaWomen: data.filter(item => item.level === 'Pra Remaja' && item.gender === 'Perempuan').length,
-            totalPraRemajaMen: data.filter(item => item.level === 'Pra Remaja' && item.gender === 'Laki - Laki').length,
-            totalCabeRawit: data.filter(item => item.level === 'Cabe Rawit').length,
-            totalCabeRawitWomen: data.filter(item => item.level === 'Cabe Rawit' && item.gender === 'Perempuan').length,
-            totalCabeRawitMen: data.filter(item => item.level === 'Cabe Rawit' && item.gender === 'Laki - Laki').length,
-            totalBalita: data.filter(item => item.level === 'Balita').length,
-            totalBalitaWomen: data.filter(item => item.level === 'Balita' && item.gender === 'Perempuan').length,
-            totalBalitaMen: data.filter(item => item.level === 'Balita' && item.gender === 'Laki - Laki').length,
-            totalMen: data.filter(item => item.gender === 'Laki - Laki').length,
-            totalWomen: data.filter(item => item.gender === 'Perempuan').length,
-            totalMarriage: data.filter(item => item.marriage_status === 'Menikah').length,
-            totalWidower: data.filter(item => item.marriage_status === 'Duda').length,
-            totalWidow: data.filter(item => item.marriage_status === 'Janda').length,
-          };
-          setCount(counts);
-        }
-      } catch (e) {
-        console.error('Fetch error:', e);
-        setError('Failed to fetch data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchSensus();
   }, [navigation]);
 
@@ -337,6 +360,13 @@ const HomeScreen = () => {
           <CardComponent
             title='TOTAL SENSUS KELOMPOK 1'
             count={count.totalUsers}
+            loading={loading}
+          />
+        </View>
+        <View style={styles.row}>
+          <CardComponent
+            title='TOTAL KEPALA KELUARGA'
+            count={count.totalKK}
             loading={loading}
           />
         </View>
@@ -414,6 +444,19 @@ const HomeScreen = () => {
           <CardComponent
             title='Janda'
             count={count.totalWidow}
+            loading={loading}
+          />
+        </View>
+        {/* SECTION 6 */}
+        <View style={styles.row}>
+          <CardComponent
+            title='Duafa'
+            count={count.totalDuafa}
+            loading={loading}
+          />
+          <CardComponent
+            title='Binaan'
+            count={count.totalEducate}
             loading={loading}
           />
         </View>
