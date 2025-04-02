@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View, Text, StatusBar, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, View, Text, StatusBar, TouchableOpacity, Alert, Platform, Linking, Animated } from 'react-native';
 import { supabase } from '../../config';
 import CardComponent from '../../components/Card';
 import { ios } from '../../utils/helper';
@@ -7,7 +7,14 @@ import { useNavigation } from '@react-navigation/native';
 import Monicon from '@monicon/native';
 import { COLOR_PRIMARY, COLOR_WHITE_1 } from '../../utils/constant';
 import * as Clipboard from '@react-native-clipboard/clipboard';
+import XLSX from 'xlsx';
+import RNFS from 'react-native-fs';
+import Share from 'react-native-share';
 
+const dataToExport = [
+  { nama: 'Budi', usia: 25 },
+  { nama: 'Siti', usia: 30 },
+];
 const HomeScreen = () => {
   const navigation = useNavigation()
   const [loading, setLoading] = useState(true);
@@ -63,6 +70,17 @@ const HomeScreen = () => {
     totalWidower: 0,
     totalWidow: 0,
   })
+  const [open, setOpen] = useState(false);
+  const animation = useState(new Animated.Value(0))[0];
+
+  const toggleMenu = () => {
+    Animated.timing(animation, {
+      toValue: open ? 0 : 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    setOpen(!open);
+  };
 
   const copyHeader = async () => {
     const headerString = `
@@ -161,6 +179,98 @@ const HomeScreen = () => {
       ]
     );
   }
+
+  const exportToExcel = async () => {
+    try {
+      // 1. Generate dynamic filename with timestamp
+      const date = new Date();
+      const timestamp = `${date.getFullYear()}-${(date.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_${date
+          .getHours()
+          .toString()
+          .padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}`;
+
+      const fileName = `Data_Anggota_${timestamp}.xlsx`;
+
+      // 2. Prepare data with additional metadata
+      const excelData = [
+        { Kategori: '📊 STATISTIK SENSUS KELOMPOK 1', Jumlah: '', 'Laki-laki': '', 'Perempuan': '' },
+        { Kategori: '👥 Total Anggota', Jumlah: `${count.totalUsers} orang`, 'Laki-laki': `${count.totalMen} orang`, 'Perempuan': `${count.totalWomen} orang` },
+        { Kategori: '', Jumlah: '', 'Laki-laki': '', 'Perempuan': '' },
+        { Kategori: '🏷️ Berdasarkan Kategori:', Jumlah: '', 'Laki-laki': '', 'Perempuan': '' },
+        { Kategori: '📌 Dewasa', Jumlah: `${count.totalAdult} orang`, 'Laki-laki': `${count.totalAdultMen} orang`, 'Perempuan': `${count.totalAdultWomen} orang` },
+        { Kategori: '📌 Pra Nikah', Jumlah: `${count.totalPraNikah} orang`, 'Laki-laki': `${count.totalPraNikahMen} orang`, 'Perempuan': `${count.totalPraNikahWomen} orang` },
+        { Kategori: '📌 Remaja', Jumlah: `${count.totalRemaja} orang`, 'Laki-laki': `${count.totalRemajaMen} orang`, 'Perempuan': `${count.totalRemajaWomen} orang` },
+        { Kategori: '📌 Pra Remaja', Jumlah: `${count.totalPraRemaja} orang`, 'Laki-laki': `${count.totalPraRemajaMen} orang`, 'Perempuan': `${count.totalPraRemajaWomen} orang` },
+        { Kategori: '📌 Cabe Rawit', Jumlah: `${count.totalCabeRawit} orang`, 'Laki-laki': `${count.totalCabeRawitMen} orang`, 'Perempuan': `${count.totalCabeRawitWomen} orang` },
+        { Kategori: '📌 Balita', Jumlah: `${count.totalBalita} orang`, 'Laki-laki': `${count.totalBalitaMen} orang`, 'Perempuan': `${count.totalBalitaWomen} orang` },
+        { Kategori: '', Jumlah: '', 'Laki-laki': '', 'Perempuan': '' },
+        { Kategori: '💑 Status Pernikahan:', Jumlah: '', 'Laki-laki': '', 'Perempuan': '' },
+        { Kategori: '👫 Menikah', Jumlah: `${count.totalMarriage} orang`, 'Laki-laki': '-', 'Perempuan': '-' },
+        { Kategori: '👨 Duda', Jumlah: `${count.totalWidower} orang`, 'Laki-laki': '-', 'Perempuan': '-' },
+        { Kategori: '👩 Janda', Jumlah: `${count.totalWidow} orang`, 'Laki-laki': '-', 'Perempuan': '-' },
+      ];
+
+      // 3. Create worksheet with custom styling
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      ws['!cols'] = [
+        { width: 30 }, // Kategori column width
+        { width: 20 }, // Jumlah column width
+        { width: 20 }, // Laki-laki column width
+        { width: 20 }, // Perempuan column width
+      ];
+
+      // 4. Create workbook and append sheet
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Statistik Anggota");
+
+      // 5. Generate file in base64 format
+      const wbout = XLSX.write(wb, {
+        type: 'base64',
+        bookType: 'xlsx',
+        bookSST: false,
+      });
+
+      // 6. Platform-specific file path handling
+      let filePath = '';
+      if (Platform.OS === 'android') {
+        filePath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+      } else {
+        filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+      }
+
+      // 7. Write file with error handling
+      await RNFS.writeFile(filePath, wbout, 'base64');
+
+      // 8. Verify file existence
+      const fileExists = await RNFS.exists(filePath);
+      if (!fileExists) {
+        throw new Error('File export failed');
+      }
+
+      // 9. Platform-specific sharing options
+      const shareOptions = {
+        url: `file://${filePath}`,
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        subject: `Data Anggota ${timestamp}`, // Email subject
+        failOnCancel: false,
+        saveToFiles: true, // iOS specific: save to Files app
+      };
+
+      // 10. Open share dialog
+      await Share.open(shareOptions);
+
+    } catch (error) {
+      console.error('Export error:', error);
+      Alert.alert(
+        'Export Gagal',
+        'Terjadi kesalahan saat mengekspor data. Silakan coba lagi.',
+        [{ text: 'OK', style: 'cancel' }]
+      );
+    }
+  };
+
 
 
   useEffect(() => {
@@ -308,8 +418,24 @@ const HomeScreen = () => {
           />
         </View>
       </ScrollView>
-      <TouchableOpacity style={styles.addButton} onPress={copyHeader}>
-        <Monicon name="material-symbols:content-copy" size={30} color={COLOR_WHITE_1} />
+      {open && (
+        <>
+          <Animated.View style={[styles.fabButtonContainer, { bottom: 160 }]}>
+            <Text style={styles.fabLabel}>Export Excel</Text>
+            <TouchableOpacity style={styles.fabButton} onPress={exportToExcel}>
+              <Monicon name="vscode-icons:file-type-excel" size={30} color={COLOR_WHITE_1} />
+            </TouchableOpacity>
+          </Animated.View>
+          <Animated.View style={[styles.fabButtonContainer, { bottom: 95 }]}>
+            <Text style={styles.fabLabel}>Copy Header</Text>
+            <TouchableOpacity style={styles.fabButton} onPress={copyHeader}>
+              <Monicon name="material-symbols:content-copy" size={30} color={COLOR_WHITE_1} />
+            </TouchableOpacity>
+          </Animated.View>
+        </>
+      )}
+      <TouchableOpacity style={styles.fabMainButton} onPress={toggleMenu}>
+        <Monicon name={open ? "material-symbols:close" : "mdi-light:settings"} size={30} color={COLOR_WHITE_1} />
       </TouchableOpacity>
     </SafeAreaView>
   )
@@ -326,22 +452,51 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 20,
-    paddingBottom:100
+    paddingBottom: 100
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  addButton: {
+  fabContainer: {
     position: 'absolute',
     bottom: 25,
     right: 25,
+    alignItems: 'flex-end',
+  },
+  fabButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute',
+    right: 20,
+  },
+  fabButton: {
     width: 50,
     height: 50,
     borderRadius: 50,
     backgroundColor: COLOR_PRIMARY,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
+  fabMainButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 15,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLOR_PRIMARY,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fabLabel: {
+    marginRight: 10,
+    color: COLOR_WHITE_1,
+    fontSize: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  }
 });

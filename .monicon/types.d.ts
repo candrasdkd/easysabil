@@ -34,6 +34,8 @@ declare module "@monicon/icon-loader" {
 	| "mdi:logout"
 	| "entypo:eye"
 	| "entypo:eye-with-line"
+	| "vscode-icons:file-type-excel"
+	| "material-symbols:close"
 	| "radix-icons:accessibility"
 	| "radix-icons:activity-log"
 	| "radix-icons:align-baseline"

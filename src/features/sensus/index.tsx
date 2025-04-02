@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, ActivityIndicator, Text, View, TextInput, Modal, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, ActivityIndicator, Text, View, TextInput, Modal, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Button, DataTable } from 'react-native-paper';
 import { COLOR_BG_CARD, COLOR_DELETE_1, COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1, COLOR_WHITE_2 } from '../../utils/constant';
 import { DataFamily, DataSensus } from '../../types/';
@@ -10,6 +10,9 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BaseScreen from '../../components/BaseScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import XLSX from 'xlsx';
+import RNFS from 'react-native-fs';
+import Share from 'react-native-share';
 
 type RootStackParamList = {
     CreateUser: { dataFamily: DataFamily[] | null };
@@ -172,6 +175,96 @@ const SensusScreen = () => {
     const from = page * itemsPerPage;
     const to = Math.min((page + 1) * itemsPerPage, filteredSensus.length);
 
+    const exportToExcel = async () => {
+        try {
+            // 1. Generate dynamic filename with timestamp
+            const date = new Date();
+            const timestamp = `${date.getFullYear()}-${(date.getMonth() + 1)
+                .toString()
+                .padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_${date
+                    .getHours()
+                    .toString()
+                    .padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}`;
+
+            const fileName = `Data_Sensus_${timestamp}.xlsx`;
+
+            // 2. Prepare data for Excel
+            const excelData = filteredSensus.map(item => ({
+                'Nama': item.name,
+                'Jenjang': item.level,
+                'Jenis Kelamin': item.gender,
+                'Tanggal Lahir': new Date(item.date_of_birth).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                }),
+                'Usia': item.age,
+                'Status Pernikahan': item.marriage_status,
+                'Status': item.is_active ? 'Aktif' : 'Tidak Aktif'
+            }));
+
+            // 3. Create worksheet with custom styling
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            ws['!cols'] = [
+                { width: 30 }, // Nama
+                { width: 15 }, // Jenjang
+                { width: 15 }, // Jenis Kelamin
+                { width: 20 }, // Tanggal Lahir
+                { width: 10 }, // Usia
+                { width: 20 }, // Status Pernikahan
+                { width: 15 }, // Status
+            ];
+
+            // 4. Create workbook and append sheet
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data Sensus");
+
+            // 5. Generate file in base64 format
+            const wbout = XLSX.write(wb, {
+                type: 'base64',
+                bookType: 'xlsx',
+                bookSST: false,
+            });
+
+            // 6. Platform-specific file path handling
+            let filePath = '';
+            if (Platform.OS === 'android') {
+                filePath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+            } else {
+                filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+            }
+
+            // 7. Write file with error handling
+            await RNFS.writeFile(filePath, wbout, 'base64');
+
+            // 8. Verify file existence
+            const fileExists = await RNFS.exists(filePath);
+            if (!fileExists) {
+                throw new Error('File export failed');
+            }
+
+            // 9. Platform-specific sharing options
+            const shareOptions = {
+                url: `file://${filePath}`,
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                subject: `Data Sensus ${timestamp}`,
+                failOnCancel: false,
+                saveToFiles: true,
+            };
+
+            // 10. Open share dialog
+            await Share.open(shareOptions);
+
+        } catch (error) {
+            console.error('Export error:', error);
+            Alert.alert(
+                'Export Gagal',
+                'Terjadi kesalahan saat mengekspor data. Silakan coba lagi.',
+                [{ text: 'OK', style: 'cancel' }]
+            );
+        }
+    };
+
     const renderContent = () => {
         if (loading) {
             return (
@@ -296,8 +389,11 @@ const SensusScreen = () => {
                     }}
                 />
 
-                <TouchableOpacity style={styles.filterButton} onPress={() => setModalVisible(true)} >
+                <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)} >
                     <Monicon name="mdi-light:settings" size={30} color={COLOR_WHITE_1} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.filterButton} onPress={exportToExcel}>
+                    <Monicon name="vscode-icons:file-type-excel" size={30} color={COLOR_WHITE_1} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('CreateUser', { dataFamily: dataFamily || [] })}>
                     <Monicon name="material-symbols:add" size={30} color={COLOR_WHITE_1} />
@@ -538,7 +634,8 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         paddingHorizontal: 10,
         color: COLOR_WHITE_1,
-        flex: 1
+        flex: 1,
+        marginRight: 10
     },
     searchContainer: {
         flexDirection: 'row',

@@ -35,7 +35,9 @@ const configWithMonicon = withMonicon(config, {
     "material-symbols:content-copy",
     "mdi:logout",
     "entypo:eye",
-    "entypo:eye-with-line"
+    "entypo:eye-with-line",
+    "vscode-icons:file-type-excel",
+    "material-symbols:close"
 
   ],
   // Load all icons from the listed collections
