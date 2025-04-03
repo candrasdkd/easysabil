@@ -216,6 +216,10 @@ const HomeScreen = () => {
         { Kategori: '👫 Menikah', Jumlah: `${count.totalMarriage} orang`, 'Laki-laki': '-', 'Perempuan': '-' },
         { Kategori: '👨 Duda', Jumlah: `${count.totalWidower} orang`, 'Laki-laki': '-', 'Perempuan': '-' },
         { Kategori: '👩 Janda', Jumlah: `${count.totalWidow} orang`, 'Laki-laki': '-', 'Perempuan': '-' },
+        { Kategori: '📋 Status Khusus:', Jumlah: '', 'Laki-laki': '', 'Perempuan': '' },
+        { Kategori: '🎓 Binaan', Jumlah: `${count.totalEducate} orang`, 'Laki-laki': '-', 'Perempuan': '-' },
+        { Kategori: '🤲 Duafa', Jumlah: `${count.totalDuafa} orang`, 'Laki-laki': '-', 'Perempuan': '-' },
+        
       ];
 
       // 3. Create worksheet with custom styling
@@ -259,7 +263,7 @@ const HomeScreen = () => {
       const shareOptions = {
         url: `file://${filePath}`,
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        subject: `Data Anggota ${timestamp}`, // Email subject
+        subject: `Total Sensus ${timestamp}`, // Email subject
         failOnCancel: false,
         saveToFiles: true, // iOS specific: save to Files app
       };
