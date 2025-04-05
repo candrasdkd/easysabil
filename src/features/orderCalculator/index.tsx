@@ -30,6 +30,7 @@ const OrderCalculatorScreen = () => {
         user: { label: '', value: '', id: '' },
         category: { label: '', value: '', id: '', name: '', price: '' },
     });
+    const unpaidOrders = orders.filter(order => !order.is_payment);
 
     const formatCurrency = (amount: number) => `Rp ${amount.toLocaleString('id-ID')}`;
 
@@ -132,12 +133,6 @@ const OrderCalculatorScreen = () => {
                 return;
             }
 
-            const unpaidOrders = orders.filter(order => !order.is_payment);
-            if (unpaidOrders.length === 0) {
-                Alert.alert('Info', 'Pembayaran sudah lunas semua.');
-                return;
-            }
-
             if (!isExactChange && numericPrice === 0) {
                 Alert.alert('Info', 'Masukkan jumlah uang yang diterima.');
                 return;
@@ -151,7 +146,7 @@ const OrderCalculatorScreen = () => {
             const actualPriceToSave = isExactChange ? totalPrice : numericPrice;
             const perOrderPayment = actualPriceToSave / unpaidOrders.length;
 
-            let successCount = 0;
+            let successNames: string[] = [];
             let failCount = 0;
 
             for (const item of unpaidOrders) {
@@ -167,14 +162,22 @@ const OrderCalculatorScreen = () => {
                     console.error('Gagal memperbarui order:', item.id, error.message);
                     failCount++;
                 } else {
-                    successCount++;
+                    successNames.push(item.name_category ?? 'Tanpa Nama'); // Ganti 'client_name' jika nama field-nya beda
                 }
             }
 
-            if (failCount === 0) {
-                Alert.alert('Berhasil', 'Semua pesanan berhasil diperbarui.');
-            } else {
-                Alert.alert('Sebagian Gagal', `${successCount} berhasil, ${failCount} gagal.`);
+            if (successNames.length > 0) {
+                Alert.alert(
+                    'Berhasil',
+                    `Pesanan berhasil diperbarui untuk:\n${successNames.join(', ')}`
+                );
+            }
+
+            if (failCount > 0) {
+                Alert.alert(
+                    'Sebagian Gagal',
+                    `${failCount} pesanan gagal diperbarui.`
+                );
             }
 
             handleResetPayment();
@@ -185,6 +188,7 @@ const OrderCalculatorScreen = () => {
             setUploading(false);
         }
     };
+
 
 
     const handleResetPayment = () => {
@@ -370,7 +374,13 @@ const OrderCalculatorScreen = () => {
                     style={{ marginBottom: 20, marginHorizontal: 20 }}
                     mode='contained'
                     buttonColor={COLOR_PRIMARY}
-                    onPress={() => setModalVisible(!modalVisible)}
+                    onPress={() => {
+                        if (unpaidOrders.length === 0) {
+                            Alert.alert('Info', 'Pembayaran sudah lunas semua.');
+                            return;
+                        }
+                        setModalVisible(!modalVisible)
+                    }}
                     textColor={COLOR_WHITE_1}>
                     Selesaikan Pembayaran
                 </Button>
