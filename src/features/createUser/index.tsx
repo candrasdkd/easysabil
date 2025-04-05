@@ -326,6 +326,7 @@ const CreateUser = () => {
             <Modal
                 animationType="fade"
                 transparent={true}
+                statusBarTranslucent
                 visible={showCalendar}
                 onRequestClose={() => setShowCalendar(false)}
             >

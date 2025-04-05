@@ -356,6 +356,7 @@ const OrderCategoryScreen = () => {
             {/* Modal for Adding Category Order */}
             <Modal
                 animationType="fade"
+                statusBarTranslucent
                 transparent={true}
                 visible={modalVisible || modalUpdate}
                 onRequestClose={() => setModalVisible(false)}

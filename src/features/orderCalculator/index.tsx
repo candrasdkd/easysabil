@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import React, { useEffect, useState, useMemo } from 'react';
 import BaseScreen from '../../components/BaseScreen';
 import { Dropdown, MultiSelect } from 'react-native-element-dropdown';
@@ -10,7 +10,9 @@ import {
 } from '../../utils/constant';
 import { DataDropdown, DataOrder } from '../../types';
 import { supabase } from '../../config';
-import { Card } from 'react-native-paper';
+import { Button, Card, Switch } from 'react-native-paper';
+import { formatRupiah } from '../../utils/helper';
+import Monicon from '@monicon/native';
 
 const OrderCalculatorScreen = () => {
     const [dataDropdownSensus, setDataDropdownSensus] = useState<DataDropdown[]>([]);
@@ -18,11 +20,12 @@ const OrderCalculatorScreen = () => {
     const [uploading, setUploading] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
+    const [modalVisible, setModalVisible] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string[]>([]);
     const [orders, setOrders] = useState<DataOrder[]>([]);
     const [totalPrice, setTotalPrice] = useState<number>(0);
-
+    const [actualPrice, setActualPrice] = useState('');
+    const [isExactChange, setIsExactChange] = useState(false);
     const [dataUpload, setDataUpload] = useState({
         user: { label: '', value: '', id: '' },
         category: { label: '', value: '', id: '', name: '', price: '' },
@@ -63,8 +66,8 @@ const OrderCalculatorScreen = () => {
 
             const categoryOptions = data.map(item => ({
                 ...item,
-                label: `${item.id}-${item.name}(${item.year})`,
-                value: `${item.id}-${item.name}(${item.year})`,
+                label: `${item.id}-${item.name} (${item.year})`,
+                value: `${item.id}-${item.name} (${item.year})`,
             }));
 
             setDataDropdownCategory(categoryOptions);
@@ -118,6 +121,77 @@ const OrderCalculatorScreen = () => {
         }
     };
 
+
+    const handleUpdateOrder = async () => {
+        try {
+            setUploading(true);
+            const numericPrice = parseInt(actualPrice.replace(/[^0-9]/g, ''), 10) || 0;
+
+            if (orders.length === 0) {
+                Alert.alert('Info', 'Tidak ada pesanan yang ditemukan untuk diperbarui.');
+                return;
+            }
+
+            const unpaidOrders = orders.filter(order => !order.is_payment);
+            if (unpaidOrders.length === 0) {
+                Alert.alert('Info', 'Pembayaran sudah lunas semua.');
+                return;
+            }
+
+            if (!isExactChange && numericPrice === 0) {
+                Alert.alert('Info', 'Masukkan jumlah uang yang diterima.');
+                return;
+            }
+
+            if (!isExactChange && numericPrice < totalPrice) {
+                Alert.alert('Info', 'Uang yang diterima lebih kecil.');
+                return;
+            }
+
+            const actualPriceToSave = isExactChange ? totalPrice : numericPrice;
+            const perOrderPayment = actualPriceToSave / unpaidOrders.length;
+
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const item of unpaidOrders) {
+                const { error } = await supabase
+                    .from('list_order')
+                    .update({
+                        actual_price: perOrderPayment,
+                        is_payment: true,
+                    })
+                    .eq('id', item.id);
+
+                if (error) {
+                    console.error('Gagal memperbarui order:', item.id, error.message);
+                    failCount++;
+                } else {
+                    successCount++;
+                }
+            }
+
+            if (failCount === 0) {
+                Alert.alert('Berhasil', 'Semua pesanan berhasil diperbarui.');
+            } else {
+                Alert.alert('Sebagian Gagal', `${successCount} berhasil, ${failCount} gagal.`);
+            }
+
+            handleResetPayment();
+        } catch (e: any) {
+            Alert.alert('Error', e.message || 'Terjadi kesalahan.');
+            console.error('Update error:', e);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+
+    const handleResetPayment = () => {
+        setActualPrice('');
+        setIsExactChange(false);
+        setModalVisible(!modalVisible)
+    }
     useEffect(() => {
         fetchSensusData();
         fetchCategoryData();
@@ -154,6 +228,8 @@ const OrderCalculatorScreen = () => {
                             user: { ...item, value: item.value, label: item.value },
                         }));
                         setSelectedCategory([]);
+                        setOrders([]);
+                        setTotalPrice(0);
                     }}
                 />
 
@@ -197,7 +273,7 @@ const OrderCalculatorScreen = () => {
                                 </View>
                             </View>
 
-                            <View style={styles.orderRow}>
+                            <View style={[styles.orderRow, { marginTop: 5 }]}>
                                 <View style={styles.orderItem}>
                                     <Text style={styles.labelGrey}>Harga Satuan</Text>
                                     <Text style={styles.value}>{formatCurrency(order.unit_price)}</Text>
@@ -210,11 +286,96 @@ const OrderCalculatorScreen = () => {
                                 </View>
                             </View>
 
+                            <View style={[styles.orderRow, { marginTop: 5 }]}>
+                                <View style={styles.orderItem}>
+                                    <Text style={styles.labelGrey}>Catatan</Text>
+                                    <Text style={styles.value}>{order.note ? order.note : '-'}</Text>
+                                </View>
+                                <View style={styles.orderItem}>
+                                    <Text style={styles.labelGrey}>Pembayaran</Text>
+                                    {order.is_payment ?
+                                        <Monicon name="material-symbols:check-box-rounded" size={25} color={'green'} /> :
+                                        <Monicon name="material-symbols:check-box-outline-blank" size={25} color={'red'} />
+                                    }
+                                </View>
+                            </View>
+
                             {index !== orders.length - 1 && <View style={styles.divider} />}
                         </View>
                     ))}
                 </Card>
             </ScrollView>
+
+            <Modal
+                animationType="fade"
+                transparent={true}
+                statusBarTranslucent
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <Text style={styles.modalTitle}>STATUS PEMBAYARAN</Text>
+                        </View>
+                        <View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                                <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pembayaran Pas</Text>
+                                <Switch
+                                    color={COLOR_PRIMARY}
+                                    value={isExactChange}
+                                    onValueChange={() => setIsExactChange(!isExactChange)}
+                                />
+                            </View>
+                            <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Total Yang Harus Dibayarkan</Text>
+                            <TextInput
+                                editable={false}
+                                defaultValue={formatRupiah(totalPrice.toString())}
+                                style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: 'gray' }]}
+                                placeholder='Masukkan nama kategori'
+                                placeholderTextColor={COLOR_WHITE_1}
+                            />
+
+                            <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Total Uang Yang Diterima</Text>
+                            <TextInput
+                                editable={!isExactChange}
+                                defaultValue={isExactChange ? formatRupiah(totalPrice.toString()) : actualPrice ? formatRupiah(actualPrice) : actualPrice}
+                                style={[styles.dropdown, { color: COLOR_WHITE_1, backgroundColor: isExactChange ? 'gray' : COLOR_BG_CARD }]}
+                                placeholder='Masukkan uang yang diterima'
+                                placeholderTextColor={COLOR_WHITE_1}
+                                keyboardType='number-pad'
+                                onChangeText={(e) => setActualPrice(e)}
+                            />
+                        </View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15 }}>
+                            <Button
+                                onPress={() => !uploading ? handleResetPayment() : null}
+                                textColor={COLOR_PRIMARY}>
+                                Tutup
+                            </Button>
+                            <Button
+                                mode='contained'
+                                buttonColor={COLOR_PRIMARY}
+                                onPress={() => !uploading ? handleUpdateOrder() : null}
+                                textColor={COLOR_WHITE_1}>
+                                Update
+                            </Button>
+                        </View>
+
+                    </View>
+                </View>
+            </Modal>
+            {totalPrice !== 0 &&
+                <Button
+                    style={{ marginBottom: 20, marginHorizontal: 20 }}
+                    mode='contained'
+                    buttonColor={COLOR_PRIMARY}
+                    onPress={() => setModalVisible(!modalVisible)}
+                    textColor={COLOR_WHITE_1}>
+                    Selesaikan Pembayaran
+                </Button>
+            }
+
         </BaseScreen>
     );
 };
@@ -282,5 +443,29 @@ const styles = StyleSheet.create({
         borderStyle: 'dashed',
         borderColor: 'grey',
         marginTop: 15,
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContentContainer: {
+        flexGrow: 1, // Agar bisa di-scroll dengan baik
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 20, // Memberikan ruang agar lebih nyaman di-scroll
+    },
+    modalContent: {
+        width: '80%',
+        backgroundColor: COLOR_BG_CARD,
+        borderRadius: 10,
+        padding: 20,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 10,
+        color: COLOR_WHITE_1
     },
 });

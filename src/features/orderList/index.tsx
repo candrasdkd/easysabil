@@ -14,6 +14,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Share from 'react-native-share';
 
 type ListOrderRouteParams = {
     selectedCategory: SelectedCategoryProps; // Adjust this type based on your actual DataFamily type
@@ -372,7 +373,7 @@ const OrderListScreen = () => {
         return calculated.toString();
     }
 
-    const handleCopyToClipboard = () => {
+    const handleCopyToClipboard = async () => {
         let grandTotal = 0;
         const formattedData = filteredOrder.map((item, index) => {
             const totalPrice = item.unit_price * item.total_order;
@@ -383,58 +384,24 @@ const OrderListScreen = () => {
         const finalText = `*DAFTAR PESANAN ${settingFilter.category.label.toUpperCase()}*\n====================\n\n${formattedData}\n====================\n*TOTAL KESELURUHAN: ${formatRupiah(grandTotal.toString())}*`;
         Clipboard.default.setString(finalText);
 
-        Alert.alert(
-            'Berhasil',
-            'Data berhasil disalin ke clipboard',
-            [
-                {
-                    text: 'Pergi Ke Whatsapp',
-                    onPress: () => {
-                        // Encode the text for URL
-                        const encodedText = encodeURIComponent(finalText);
+        Alert.alert('Info', 'Data berhasil disalin ke clipboard');
+        try {
+            const shareOptions = {
+                message: finalText,
+                title: 'Statistik Sensus Kelompok 1',
+                subject: 'Statistik Sensus Kelompok 1',
+                social: Share.Social.WHATSAPP,
+                failOnCancel: false,
+            };
 
-                        // Check if WhatsApp is installed
-                        const whatsappUrl = Platform.select({
-                            ios: `https://wa.me/6285175070782?text=${encodedText}`,
-                            android: `whatsapp://send?text=${encodedText}`,
-                        });
-
-                        if (whatsappUrl) {
-                            Linking.canOpenURL(whatsappUrl)
-                                .then(supported => {
-                                    if (supported) {
-                                        return Linking.openURL(whatsappUrl);
-                                    } else {
-                                        Alert.alert(
-                                            'Error',
-                                            'WhatsApp tidak terinstall di perangkat Anda',
-                                            [
-                                                {
-                                                    text: 'Instal Whatsapp',
-                                                    onPress: () => {
-                                                        // Open Play Store/App Store if WhatsApp is not installed
-                                                        const storeUrl = Platform.select({
-                                                            ios: 'https://apps.apple.com/app/whatsapp-messenger/id310633997',
-                                                            android: 'https://play.google.com/store/apps/details?id=com.whatsapp',
-                                                        });
-                                                        if (storeUrl) {
-                                                            Linking.openURL(storeUrl);
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        );
-                                    }
-                                })
-                                .catch(err => {
-                                    console.error('Error opening WhatsApp:', err);
-                                    Alert.alert('Error', 'Gagal membuka WhatsApp');
-                                });
-                        }
-                    }
-                }
-            ]
-        );
+            await Share.open(shareOptions);
+        } catch (error: any) {
+            if (error.message === 'User did not share') {
+                // User cancelled the share
+                return;
+            }
+            Alert.alert('Error', 'Gagal membagikan data');
+        }
     };
 
     useFocusEffect(
@@ -708,6 +675,7 @@ const OrderListScreen = () => {
                 <Modal
                     animationType="fade"
                     transparent={true}
+                    statusBarTranslucent
                     visible={modalVisible}
                     onRequestClose={() => setModalVisible(false)}
                 >
@@ -767,6 +735,7 @@ const OrderListScreen = () => {
                 <Modal
                     animationType="fade"
                     transparent={true}
+                    statusBarTranslucent
                     visible={modalCreate || modalUpdate}
                     onRequestClose={() => {
                         if (modalUpdate) {
@@ -901,6 +870,7 @@ const OrderListScreen = () => {
                 <Modal
                     animationType="fade"
                     transparent={true}
+                    statusBarTranslucent
                     visible={modalFilter}
                     onRequestClose={() => setModalFilter(false)}
                 >

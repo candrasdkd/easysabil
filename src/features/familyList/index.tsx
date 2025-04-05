@@ -318,6 +318,7 @@ const FamilyListScreen = () => {
             {/* Modal for Create */}
             <Modal
                 animationType="fade"
+                statusBarTranslucent
                 transparent={true}
                 visible={showModalCreate}
                 onRequestClose={() => setShowModalCreate(false)}
@@ -359,6 +360,7 @@ const FamilyListScreen = () => {
             {/* Modal for Update */}
             <Modal
                 animationType="fade"
+                statusBarTranslucent
                 transparent={true}
                 visible={showModalUpdate}
                 onRequestClose={() => setShowModalUpdate(false)}

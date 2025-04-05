@@ -410,6 +410,7 @@ const SensusScreen = () => {
             {/* Modal for Filter Options */}
             <Modal
                 animationType="fade"
+                statusBarTranslucent
                 transparent={true}
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}

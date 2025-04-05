@@ -294,6 +294,7 @@ const UpdateUser = () => {
                 />
             </ScrollView>
             <Modal
+                statusBarTranslucent
                 animationType="fade"
                 transparent={true}
                 visible={showCalendar}
