@@ -19,7 +19,7 @@ type ListOrderRouteParams = {
     selectedCategory: SelectedCategoryProps; // Adjust this type based on your actual DataFamily type
 };
 
-const ListOrderScreen = () => {
+const OrderListScreen = () => {
     const route = useRoute<RouteProp<{ params: ListOrderRouteParams }>>();
     const navigation = useNavigation()
     const [dataOrder, setDataOrder] = useState<DataOrder[]>([]);
@@ -1234,4 +1234,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ListOrderScreen;
+export default OrderListScreen;

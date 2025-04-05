@@ -23,7 +23,7 @@ const dummyData = Array.from({ length: 5 }, (_, i) => ({
     subtitle: ["Dikirim", "Diproses", "Selesai", "Dibatalkan", "Menunggu Pembayaran"][i % 5]
 }));
 
-const CategoryOrder = () => {
+const OrderCategoryScreen = () => {
     const today = new Date();
     const navigation = useNavigation<NavigationProp>();
     const [searchQuery, setSearchQuery] = useState('');
@@ -435,7 +435,7 @@ const CategoryOrder = () => {
     );
 }
 
-export default CategoryOrder;
+export default OrderCategoryScreen;
 
 const styles = StyleSheet.create({
     container: {

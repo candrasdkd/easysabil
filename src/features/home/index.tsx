@@ -121,70 +121,36 @@ const HomeScreen = () => {
 👨 Laki-laki: ${count.totalMen} orang
 👩 Perempuan: ${count.totalWomen} orang
 
-💑 *STATUS PERNIKAHAN:*
+💑 *STATUS PERNIKAHAN*:
 ━━━━━━━━━━━━━━━━━━━━━
 👫 Menikah: ${count.totalMarriage} orang
 👨 Duda: ${count.totalWidower} orang
 👩 Janda: ${count.totalWidow} orang
 
-📋 *STATUS KHUSUS:*
+📋 *STATUS KHUSUS*:
 ━━━━━━━━━━━━━━━━━━━━━
 🎓 Binaan: ${count.totalEducate} orang
 🤲 Duafa: ${count.totalDuafa} orang`;
     Clipboard.default.setString(headerString);
-    Alert.alert(
-      'Berhasil',
-      'Data berhasil disalin ke clipboard',
-      [
-        {
-          text: 'Pergi Ke Whatsapp',
-          onPress: () => {
-            // Encode the text for URL
-            const encodedText = encodeURIComponent(headerString);
+    Alert.alert('Info', 'Data berhasil disalin ke clipboard');
+    try {
+      const shareOptions = {
+        message: headerString,
+        title: 'Statistik Sensus Kelompok 1',
+        subject: 'Statistik Sensus Kelompok 1',
+        social: Share.Social.WHATSAPP,
+        failOnCancel: false,
+      };
 
-            // Check if WhatsApp is installed
-            const whatsappUrl = Platform.select({
-              ios: `https://wa.me/6285175070782?text=${encodedText}`,
-              android: `whatsapp://send?text=${encodedText}`,
-            });
-
-            if (whatsappUrl) {
-              Linking.canOpenURL(whatsappUrl)
-                .then(supported => {
-                  if (supported) {
-                    return Linking.openURL(whatsappUrl);
-                  } else {
-                    Alert.alert(
-                      'Error',
-                      'WhatsApp tidak terinstall di perangkat Anda',
-                      [
-                        {
-                          text: 'Instal Whatsapp',
-                          onPress: () => {
-                            // Open Play Store/App Store if WhatsApp is not installed
-                            const storeUrl = Platform.select({
-                              ios: 'https://apps.apple.com/app/whatsapp-messenger/id310633997',
-                              android: 'https://play.google.com/store/apps/details?id=com.whatsapp',
-                            });
-                            if (storeUrl) {
-                              Linking.openURL(storeUrl);
-                            }
-                          }
-                        }
-                      ]
-                    );
-                  }
-                })
-                .catch(err => {
-                  console.error('Error opening WhatsApp:', err);
-                  Alert.alert('Error', 'Gagal membuka WhatsApp');
-                });
-            }
-          }
-        }
-      ]
-    );
-  }
+      await Share.open(shareOptions);
+    } catch (error: any) {
+      if (error.message === 'User did not share') {
+        // User cancelled the share
+        return;
+      }
+      Alert.alert('Error', 'Gagal membagikan data');
+    }
+  };
 
   const exportToExcel = async () => {
     try {
@@ -219,7 +185,7 @@ const HomeScreen = () => {
         { Kategori: '📋 Status Khusus:', Jumlah: '', 'Laki-laki': '', 'Perempuan': '' },
         { Kategori: '🎓 Binaan', Jumlah: `${count.totalEducate} orang`, 'Laki-laki': '-', 'Perempuan': '-' },
         { Kategori: '🤲 Duafa', Jumlah: `${count.totalDuafa} orang`, 'Laki-laki': '-', 'Perempuan': '-' },
-        
+
       ];
 
       // 3. Create worksheet with custom styling
@@ -264,6 +230,7 @@ const HomeScreen = () => {
         url: `file://${filePath}`,
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         subject: `Total Sensus ${timestamp}`, // Email subject
+        social: Share.Social.WHATSAPP,
         failOnCancel: false,
         saveToFiles: true, // iOS specific: save to Files app
       };

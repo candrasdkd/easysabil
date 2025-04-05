@@ -19,7 +19,7 @@ type RootStackParamList = {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const ListFamilyScreen = () => {
+const FamilyListScreen = () => {
     const navigation = useNavigation<NavigationProp>()
     const [listFamily, setListFamily] = useState<ListFamilyProps[]>([]);
     const [loading, setLoading] = useState(true);
@@ -522,4 +522,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ListFamilyScreen;
+export default FamilyListScreen;

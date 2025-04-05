@@ -15,9 +15,10 @@ import 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import CreateUserScreen from './src/features/createUser';
 import UpdateUserScreen from './src/features/updateUser';
-import CategoryOrderScreen from './src/features/categoryOrder';
-import ListOrderScreen from './src/features/listOrder';
-import ListFamilyScreen from './src/features/listFamily';
+import OrderCategoryScreen from './src/features/orderCategory';
+import OrderListScreen from './src/features/orderList';
+import OrderCalculatorScreen from './src/features/orderCalculator';
+import FamilyListScreen from './src/features/familyList';
 import SplashScreen from './src/features/splash';
 import CustomDrawerContent from './src/components/CustomDrawerContent';
 
@@ -31,15 +32,6 @@ function App(): React.JSX.Element {
         <Stack.Screen name="ListSensus" component={SensusScreen} options={{ headerShown: false }} />
         <Stack.Screen name="CreateUser" component={CreateUserScreen} options={{ headerShown: false }} />
         <Stack.Screen name="UpdateUser" component={UpdateUserScreen} options={{ headerShown: false }} />
-      </Stack.Navigator>
-    );
-  };
-
-  const OrderStack = () => {
-    return (
-      <Stack.Navigator>
-        <Stack.Screen name="CategoryOrder" component={CategoryOrderScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="ListOrder" component={ListOrderScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     );
   };
@@ -69,18 +61,23 @@ function App(): React.JSX.Element {
         />
         <Drawer.Screen
           name="ListOrder"
-          component={ListOrderScreen}
+          component={OrderListScreen}
           options={{ title: 'Daftar Pesanan' }}
         />
         <Drawer.Screen
           name="CategoryOrder"
-          component={CategoryOrderScreen}
+          component={OrderCategoryScreen}
           options={{ title: 'Kategori Pesanan' }}
         />
         <Drawer.Screen
           name="ListFamily"
-          component={ListFamilyScreen}
+          component={FamilyListScreen}
           options={{ title: 'Daftar Keluarga' }}
+        />
+        <Drawer.Screen
+          name="OrderCalculator"
+          component={OrderCalculatorScreen}
+          options={{ title: 'Kalkulator Pesanan' }}
         />
       </Drawer.Navigator>
     );
