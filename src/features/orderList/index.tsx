@@ -381,15 +381,15 @@ const OrderListScreen = () => {
             return `${index + 1}. Nama: ${item.user_name}\n   📦 Jumlah: ${item.total_order} pcs\n ${hidePrice ? '' : `  💰 Total: ${formatRupiah(totalPrice.toString())}\n`}   📝 Catatan: ${item.note || '-'}\n`;
         }).join('\n');
 
-        const finalText = `*DAFTAR PESANAN ${settingFilter.category.label.toUpperCase()}*\n====================\n\n${formattedData}\n====================\n*TOTAL KESELURUHAN: ${formatRupiah(grandTotal.toString())}*`;
+        const finalText = `*DAFTAR PESANAN ${settingFilter.category.label.toUpperCase()}*\n${settingFilter.isPayment === null ? '' : settingFilter.isPayment ? "*✅ SUDAH LUNAS*" : "*❌ BELUM LUNAS*"}\n${formattedData}\n*TOTAL KESELURUHAN: ${formatRupiah(grandTotal.toString())}*`;
         Clipboard.default.setString(finalText);
 
         Alert.alert('Info', 'Data berhasil disalin ke clipboard');
         try {
             const shareOptions = {
                 message: finalText,
-                title: 'Statistik Sensus Kelompok 1',
-                subject: 'Statistik Sensus Kelompok 1',
+                title: 'Daftar Pesanan',
+                subject: 'Daftar Pesanan',
                 social: Share.Social.WHATSAPP,
                 failOnCancel: false,
             };
