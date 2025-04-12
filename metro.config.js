@@ -37,8 +37,8 @@ const configWithMonicon = withMonicon(config, {
     "entypo:eye",
     "entypo:eye-with-line",
     "vscode-icons:file-type-excel",
-    "material-symbols:close"
-
+    "material-symbols:close",
+    "ic:outline-security-update-warning"
   ],
   // Load all icons from the listed collections
   collections: ["radix-icons"],

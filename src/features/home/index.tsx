@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View, Text, StatusBar, TouchableOpacity, Alert, Platform, Linking, Animated } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, View, Text, StatusBar, TouchableOpacity, Alert, Platform, Linking, Animated, Modal } from 'react-native';
 import { supabase } from '../../config';
 import CardComponent from '../../components/Card';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Monicon from '@monicon/native';
 import { COLOR_PRIMARY, COLOR_WHITE_1 } from '../../utils/constant';
 import * as Clipboard from '@react-native-clipboard/clipboard';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
+import { android, ios } from '../../utils/helper';
 
 const HomeScreen = () => {
   const navigation = useNavigation()
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [count, setCount] = useState<{
     totalUsers: number;
     totalAdult: number;
@@ -210,7 +212,7 @@ const HomeScreen = () => {
 
       // 6. Platform-specific file path handling
       let filePath = '';
-      if (Platform.OS === 'android') {
+      if (android) {
         filePath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
       } else {
         filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
@@ -267,7 +269,7 @@ const HomeScreen = () => {
         console.error('Family Error:', familyResponse.error.message);
         return;
       }
-      const totalKK = familyResponse.data?.length - 1 || 0;
+      const totalKK = familyResponse.data?.length - 2 || 0;
 
       // Handle sensus data
       if (sensusResponse.error) {
@@ -451,6 +453,7 @@ const HomeScreen = () => {
       <TouchableOpacity style={styles.fabMainButton} onPress={toggleMenu}>
         <Monicon name={open ? "material-symbols:close" : "mdi-light:settings"} size={30} color={COLOR_WHITE_1} />
       </TouchableOpacity>
+
     </SafeAreaView>
   )
 }
@@ -512,5 +515,5 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 10,
-  }
+  },
 });

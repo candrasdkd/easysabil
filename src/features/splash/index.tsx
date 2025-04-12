@@ -1,11 +1,14 @@
-import { Image, Modal, SafeAreaView, StyleSheet, Text, TextInput, View, ScrollView, TouchableOpacity } from 'react-native'
+import { Image, Modal, SafeAreaView, StyleSheet, Text, TextInput, View, ScrollView, TouchableOpacity, Linking } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1 } from '../../utils/constant'
-import { windowHeight, windowWidth } from '../../utils/helper'
+import { ios, windowHeight, windowWidth } from '../../utils/helper'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Button } from 'react-native-paper'
 import { supabase } from '../../config'
 import Monicon from '@monicon/native'
+import { VersionData } from '../../types'
+import DeviceInfo from 'react-native-device-info'
+import { useFocusEffect } from '@react-navigation/native'
 
 const SplashScreen = ({ navigation }: any) => {
     const [showModal, setShowModal] = useState(false);
@@ -13,10 +16,44 @@ const SplashScreen = ({ navigation }: any) => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-
+    const [visible, setVisible] = useState(false);
+    const [versionData, setVersionData] = useState<VersionData | null>(null);
+    const currentVersion = DeviceInfo.getVersion();
     useEffect(() => {
-        checkAdminPassword()
+        checkForUpdates().then(hasUpdate => {
+            if (!hasUpdate) {
+                checkAdminPassword();
+            }
+        });
     }, [])
+
+    const checkForUpdates = async (): Promise<boolean> => {
+        try {
+            const { data, error } = await supabase
+                .from('update_version')
+                .select('*')
+                .eq('os_name', ios ? 'ios' : 'android')
+                .limit(1);
+
+            if (error) {
+                console.error('Error fetching version data:', error);
+                return false;
+            }
+
+            if (data && data.length > 0) {
+                const latestVersion = data[0];
+                if (latestVersion.version !== currentVersion) {
+                    setVersionData(latestVersion);
+                    setVisible(true);
+                    return true; // Ada update yang tersedia
+                }
+            }
+            return false; // Tidak ada update
+        } catch (error) {
+            console.error('Update check failed:', error);
+            return false;
+        }
+    };
 
     const checkAdminPassword = async () => {
         try {
@@ -25,11 +62,11 @@ const SplashScreen = ({ navigation }: any) => {
                 navigation.replace('MainApp')
                 return
             }
-            // If no password is stored, show the modal after 1 second
             const timer = setTimeout(() => {
                 setShowModal(true)
             }, 1000)
             return () => clearTimeout(timer)
+
         } catch (error) {
             console.error('Error checking admin password:', error)
             setError('Terjadi kesalahan saat memeriksa password')
@@ -74,6 +111,22 @@ const SplashScreen = ({ navigation }: any) => {
         }
     }
 
+    const handleUpdate = () => {
+        const storeUrl = ios
+            ? 'https://apps.apple.com/id/app/your-app-id'
+            : 'https://play.google.com/store/apps/details?id=com.easysabil';
+        Linking.openURL(storeUrl);
+        setVisible(!visible)
+    };
+    const handleClose = () => {
+        setVisible(false);
+    };
+
+    useFocusEffect(
+        React.useCallback(() => {
+            checkForUpdates()
+        }, [navigation, currentVersion])
+    );
     return (
         <SafeAreaView style={styles.background}>
             <Image
@@ -131,6 +184,41 @@ const SplashScreen = ({ navigation }: any) => {
                         </View>
                     </View>
                 </ScrollView>
+            </Modal>
+
+
+            <Modal
+                visible={visible}
+                transparent={true}
+                statusBarTranslucent
+                animationType="fade"
+                onRequestClose={handleClose}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalUpdateContainer}>
+                        <View style={styles.modalHeader}>
+                            <Monicon name="ic:outline-security-update-warning" size={30} color={COLOR_PRIMARY} />
+                            <Text style={styles.modaUpdateTitle}>Update Available</Text>
+                        </View>
+
+                        <Text style={styles.modalText}>
+                            {'A new version of the app is available. Please update to continue.'}
+                        </Text>
+
+                        <Text style={styles.versionText}>
+                            Current Version: {currentVersion} → New Version: {versionData?.version}
+                        </Text>
+
+                        <View style={styles.buttonContainer}>
+                            <TouchableOpacity
+                                style={[styles.buttonUpdate, styles.primaryButton]}
+                                onPress={handleUpdate}
+                            >
+                                <Text style={styles.buttonText}>Update Now</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
             </Modal>
         </SafeAreaView>
     )
@@ -193,5 +281,71 @@ const styles = StyleSheet.create({
     errorText: {
         color: 'red',
         marginBottom: 10,
-    }
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalUpdateContainer: {
+        width: '100%',
+        backgroundColor: COLOR_WHITE_1,
+        borderRadius: 10,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    modaUpdateTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginLeft: 10,
+        color: '#121212',
+    },
+    modalText: {
+        fontSize: 16,
+        marginBottom: 15,
+        color: '#333',
+        lineHeight: 22,
+    },
+    versionText: {
+        fontSize: 14,
+        marginBottom: 20,
+        color: '#666',
+        fontStyle: 'italic',
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+    },
+    buttonUpdate: {
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 5,
+        marginLeft: 10,
+        minWidth: 100,
+        alignItems: 'center',
+    },
+    primaryButton: {
+        backgroundColor: COLOR_PRIMARY,
+    },
+    secondaryButton: {
+        backgroundColor: '#ccc',
+    },
+    buttonText: {
+        color: COLOR_WHITE_1,
+        fontWeight: 'bold',
+    },
 })

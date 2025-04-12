@@ -106,3 +106,10 @@ export enum MarriageStatus {
     Janda = "Janda",
     Menikah = "Menikah",
 }
+
+export interface VersionData {
+    id: number;
+    version: string;
+    created_at: string;
+    os_name: string;
+}
