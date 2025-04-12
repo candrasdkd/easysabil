@@ -65,8 +65,7 @@ const SensusScreen = () => {
             const { data, error } = await supabase
                 .from('list_sensus')
                 .select('*')
-                .order('name', { ascending: true })
-                .eq('is_active', settingFilter.user_active);
+                .order('name', { ascending: true });
             if (error) {
                 setError(error.message);
                 console.error('Error:', error.message);
@@ -171,9 +170,9 @@ const SensusScreen = () => {
         const matchesFamily = settingFilter.family.id ? item.id_family === settingFilter.family.id : true;
         const matchesMarriage = settingFilter.marriage.value ? item.marriage_status === settingFilter.marriage.value : true;
         const matchesGender = settingFilter.gender.value ? item.gender === settingFilter.gender.value : true;
-        const matchesActiveStatus = settingFilter.user_active ? item.is_active === settingFilter.user_active : true;
+        const matchesActiveStatus = item.is_active === settingFilter.user_active;
         const matchesDuafa = settingFilter.user_duafa ? item.is_duafa === settingFilter.user_duafa : true;
-        const matchesBinaan = settingFilter.user_educate ? item.is_educate === settingFilter.user_educate : true;
+        const matchesBinaan = settingFilter.user_educate ? item.is_educate === settingFilter.user_educate : item.is_educate === false;
         return matchesSearch && matchesGrade && matchesFamily && matchesMarriage && matchesGender && matchesActiveStatus && matchesDuafa && matchesBinaan;
     });
 
