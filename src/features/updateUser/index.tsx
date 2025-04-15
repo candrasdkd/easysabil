@@ -31,7 +31,6 @@ const UpdateUser = () => {
         family: { label: detailUser.family_name, value: detailUser.family_name, id: detailUser.id_family },
         marriage: { label: detailUser.marriage_status, value: detailUser.marriage_status },
     });
-    console.log('bodyUser', bodyUser);
 
     const handleUpdateUser = async (id: string) => {
         try {
@@ -57,7 +56,6 @@ const UpdateUser = () => {
                 is_duafa: bodyUser.duafa,
                 is_educate: bodyUser.educate,
             };
-            console.log('transformBody', transformBody);
 
             const { error } = await supabase.from('list_sensus').update(transformBody).eq('uuid', id);
             if (error) throw error;

@@ -79,7 +79,7 @@ const OrderCalculatorScreen = () => {
     };
 
     const fetchOrders = async () => {
-        if (!dataUpload.user?.id || selectedCategory.length === 0) return;
+        if (!dataUpload.user?.id || selectedCategory.length < 0) return;
 
         try {
             setLoading(true);
@@ -127,12 +127,6 @@ const OrderCalculatorScreen = () => {
         try {
             setUploading(true);
             const numericPrice = parseInt(actualPrice.replace(/[^0-9]/g, ''), 10) || 0;
-
-            if (orders.length === 0) {
-                Alert.alert('Info', 'Tidak ada pesanan yang ditemukan untuk diperbarui.');
-                return;
-            }
-
             if (!isExactChange && numericPrice === 0) {
                 Alert.alert('Info', 'Masukkan jumlah uang yang diterima.');
                 return;
@@ -144,12 +138,26 @@ const OrderCalculatorScreen = () => {
             }
 
             const actualPriceToSave = isExactChange ? totalPrice : numericPrice;
-            const perOrderPayment = actualPriceToSave / unpaidOrders.length;
+
+            // Calculate total unit prices (unit_price * total_order)
+            const totalUnitPrice = unpaidOrders.reduce((sum, order) => {
+                const orderTotal = (order.unit_price || 0) * (order.total_order || 0);
+                return sum + orderTotal;
+            }, 0);
+
+            // Calculate remaining amount after subtracting unit prices
+            const remainingAmount = actualPriceToSave - totalUnitPrice;
+
+            // Calculate additional amount per order
+            const additionalPerOrder = remainingAmount / unpaidOrders.length;
 
             let successNames: string[] = [];
             let failCount = 0;
 
             for (const item of unpaidOrders) {
+                const orderTotal = (item.unit_price || 0) * (item.total_order || 0);
+                const perOrderPayment = orderTotal + additionalPerOrder;
+
                 const { error } = await supabase
                     .from('list_order')
                     .update({
@@ -171,6 +179,7 @@ const OrderCalculatorScreen = () => {
                     'Berhasil',
                     `Pesanan berhasil diperbarui untuk:\n${successNames.join(', ')}`
                 );
+                fetchOrders();
             }
 
             if (failCount > 0) {
@@ -292,8 +301,8 @@ const OrderCalculatorScreen = () => {
 
                             <View style={[styles.orderRow, { marginTop: 5 }]}>
                                 <View style={styles.orderItem}>
-                                    <Text style={styles.labelGrey}>Catatan</Text>
-                                    <Text style={styles.value}>{order.note ? order.note : '-'}</Text>
+                                    <Text style={styles.labelGrey}>Actual Harga</Text>
+                                    <Text style={styles.value}>{order.actual_price ? formatCurrency(order.actual_price) : 'Rp. 0'}</Text>
                                 </View>
                                 <View style={styles.orderItem}>
                                     <Text style={styles.labelGrey}>Pembayaran</Text>
@@ -302,6 +311,20 @@ const OrderCalculatorScreen = () => {
                                         <Monicon name="material-symbols:check-box-outline-blank" size={25} color={'red'} />
                                     }
                                 </View>
+                            </View>
+
+                            <View style={[styles.orderRow, { marginTop: 5 }]}>
+                                <View style={styles.orderItem}>
+                                    <Text style={styles.labelGrey}>Catatan</Text>
+                                    <Text style={styles.value}>{order.note ? order.note : '-'}</Text>
+                                </View>
+                                {/* <View style={styles.orderItem}>
+                                    <Text style={styles.labelGrey}>Pembayaran</Text>
+                                    {order.is_payment ?
+                                        <Monicon name="material-symbols:check-box-rounded" size={25} color={'green'} /> :
+                                        <Monicon name="material-symbols:check-box-outline-blank" size={25} color={'red'} />
+                                    }
+                                </View> */}
                             </View>
 
                             {index !== orders.length - 1 && <View style={styles.divider} />}
@@ -375,8 +398,17 @@ const OrderCalculatorScreen = () => {
                     mode='contained'
                     buttonColor={COLOR_PRIMARY}
                     onPress={() => {
+                        if (orders.length === 0) {
+                            Alert.alert('Info', 'Tidak ada pesanan yang ditemukan untuk diperbarui.');
+                            return;
+                        }
                         if (unpaidOrders.length === 0) {
                             Alert.alert('Info', 'Pembayaran sudah lunas semua.');
+                            return;
+                        }
+                        const hasPaidOrders = orders.some(order => order.is_payment);
+                        if (hasPaidOrders) {
+                            Alert.alert('Info', 'Tidak dapat memproses pesanan yang sudah lunas.');
                             return;
                         }
                         setModalVisible(!modalVisible)

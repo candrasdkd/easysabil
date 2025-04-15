@@ -25,7 +25,7 @@ const SplashScreen = ({ navigation }: any) => {
                 checkAdminPassword();
             }
         });
-    }, [])
+    }, [visible])
 
     const checkForUpdates = async (): Promise<boolean> => {
         try {
@@ -113,7 +113,7 @@ const SplashScreen = ({ navigation }: any) => {
 
     const handleUpdate = () => {
         const storeUrl = ios
-            ? 'https://apps.apple.com/id/app/your-app-id'
+            ? 'itms-beta://beta.itunes.apple.com/v1/app/com.kppmining.mokdev'
             : 'https://play.google.com/store/apps/details?id=com.easysabil';
         Linking.openURL(storeUrl);
         setVisible(!visible)

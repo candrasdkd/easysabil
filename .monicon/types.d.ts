@@ -36,6 +36,7 @@ declare module "@monicon/icon-loader" {
 	| "entypo:eye-with-line"
 	| "vscode-icons:file-type-excel"
 	| "material-symbols:close"
+	| "ic:outline-security-update-warning"
 	| "radix-icons:accessibility"
 	| "radix-icons:activity-log"
 	| "radix-icons:align-baseline"
