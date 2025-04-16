@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View, Text, StatusBar, TouchableOpacity, Alert, Platform, Linking, Animated, Modal } from 'react-native';
+import React, { useState } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, View, Text, StatusBar, TouchableOpacity, Alert, Animated } from 'react-native';
 import { supabase } from '../../config';
 import CardComponent from '../../components/Card';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -9,7 +9,7 @@ import * as Clipboard from '@react-native-clipboard/clipboard';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
-import { android, ios } from '../../utils/helper';
+import { android } from '../../utils/helper';
 
 const HomeScreen = () => {
   const navigation = useNavigation()
@@ -319,10 +319,13 @@ const HomeScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchSensus();
-  }, [navigation]);
-
+  useFocusEffect(
+    React.useCallback(() => {
+      // if (props.route.params?.refresh) {
+      fetchSensus();
+      // }
+    }, [navigation])
+  );
   // console.log('sensus', sensus);
 
   return (

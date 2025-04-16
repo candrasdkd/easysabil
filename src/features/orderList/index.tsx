@@ -572,7 +572,7 @@ const OrderListScreen = () => {
                         </ScrollView>
                         <View style={styles.paginationContainer}>
                             <Text style={styles.paginationText}>
-                                Page {page + 1} of {Math.ceil(filteredOrder.length / itemsPerPage)} (total {filteredOrder.length} data)
+                                Page {page + 1} of {Math.ceil(filteredOrder.length / itemsPerPage)} (Total {filteredOrder.length} Data)
                             </Text>
                             <View style={styles.paginationButtons}>
                                 <Button

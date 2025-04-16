@@ -65,6 +65,11 @@ function App(): React.JSX.Element {
           options={{ title: 'Daftar Pesanan' }}
         />
         <Drawer.Screen
+          name="OrderCalculator"
+          component={OrderCalculatorScreen}
+          options={{ title: 'Kalkulator Pesanan' }}
+        />
+        <Drawer.Screen
           name="CategoryOrder"
           component={OrderCategoryScreen}
           options={{ title: 'Kategori Pesanan' }}
@@ -73,11 +78,6 @@ function App(): React.JSX.Element {
           name="ListFamily"
           component={FamilyListScreen}
           options={{ title: 'Daftar Keluarga' }}
-        />
-        <Drawer.Screen
-          name="OrderCalculator"
-          component={OrderCalculatorScreen}
-          options={{ title: 'Kalkulator Pesanan' }}
         />
       </Drawer.Navigator>
     );

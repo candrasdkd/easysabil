@@ -358,7 +358,7 @@ const SensusScreen = () => {
 
                 <View style={styles.paginationContainer}>
                     <Text style={styles.paginationText}>
-                        Page {page + 1} of {Math.ceil(filteredSensus.length / itemsPerPage)}
+                        Page {page + 1} of {Math.ceil(filteredSensus.length / itemsPerPage)} (Total {filteredSensus.length} Data)
                     </Text>
                     <View style={styles.paginationButtons}>
                         <Button

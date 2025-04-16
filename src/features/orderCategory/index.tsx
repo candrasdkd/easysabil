@@ -218,11 +218,12 @@ const OrderCategoryScreen = () => {
 
     useFocusEffect(
         React.useCallback(() => {
+          // if (props.route.params?.refresh) {
             fetchListOrder();
             checkUserLevel();
-        }, [])
-    );
-
+          // }
+        }, [navigation])
+      );
     // Filter data based on searchQuery
     useEffect(() => {
         if (!searchQuery) {

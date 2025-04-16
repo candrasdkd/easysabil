@@ -67,8 +67,8 @@ const OrderCalculatorScreen = () => {
 
             const categoryOptions = data.map(item => ({
                 ...item,
-                label: `${item.id}-${item.name} (${item.year})`,
-                value: `${item.id}-${item.name} (${item.year})`,
+                label: `${item.name} (${item.year})`,
+                value: `${item.id}`,
             }));
 
             setDataDropdownCategory(categoryOptions);
@@ -83,32 +83,14 @@ const OrderCalculatorScreen = () => {
 
         try {
             setLoading(true);
-            let allOrders: DataOrder[] = [];
-
-            for (const category of selectedCategory) {
-                const categoryId = category.split('-')[0];
-
-                const { data, error } = await supabase
-                    .from('list_order')
-                    .select('*')
-                    .match({
-                        id_category_order: categoryId,
-                        user_id: dataUpload.user.id,
-                    })
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    console.error('Order fetch error:', error.message);
-                    continue;
-                }
-
-                allOrders = [...allOrders, ...data];
-            }
-
-            const uniqueOrders = Array.from(new Map(allOrders.map(item => [item.id, item])).values());
-            setOrders(uniqueOrders);
-
-            const total = uniqueOrders.reduce((sum, order) => {
+            const { data, error } = await supabase
+                .from('list_order')
+                .select('*')
+                .in('id_category_order', selectedCategory)
+                .eq('user_id', dataUpload.user.id)
+                .order('created_at', { ascending: false })
+            setOrders(data || []);
+            const total = (data || []).reduce((sum, order) => {
                 const unitPrice = order.unit_price || 0;
                 const totalOrder = order.total_order || 0;
                 return sum + unitPrice * totalOrder;
@@ -117,6 +99,7 @@ const OrderCalculatorScreen = () => {
             setTotalPrice(total);
         } catch (err) {
             setError('Failed to fetch order data');
+            Alert.alert('Error', 'Gagal mengambil data pesanan. Silakan coba lagi.');
         } finally {
             setLoading(false);
         }

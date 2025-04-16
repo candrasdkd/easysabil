@@ -4,7 +4,7 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { DataFamily } from '../../types';
 import { COLOR_BG_CARD, COLOR_PRIMARY, COLOR_TEXT_BODY, COLOR_WHITE_1 } from '../../utils/constant';
-import { Button, } from 'react-native-paper';
+import { Button, Switch, } from 'react-native-paper';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { supabase } from '../../config';
 import { ios } from '../../utils/helper';
@@ -20,6 +20,9 @@ const CreateUser = () => {
     const [bodyUser, setBodyUser] = useState({
         fullname: '',
         dob: '',
+        educate: false,
+        active: true,
+        duafa: false,
         gender: { label: '', value: '' },
         grade: { label: '', value: '' },
         family: { label: '', value: '', id: '' },
@@ -73,7 +76,8 @@ const CreateUser = () => {
                 age: `${age} Tahun`,
                 marriage_status: bodyUser?.marriage.value,
                 id_family: bodyUser?.family.id,
-                family_name: bodyUser?.family.label
+                family_name: bodyUser?.family.label,
+                is_educate: bodyUser?.educate,
             }
             const { error, status } = await supabase
                 .from('list_sensus')
@@ -155,6 +159,30 @@ const CreateUser = () => {
                 </View>
             </View>
             <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150, paddingTop: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Aktif?</Text>
+                    <Switch
+                        color={COLOR_PRIMARY}
+                        value={bodyUser.active}
+                        onValueChange={() => setBodyUser({ ...bodyUser, active: !bodyUser.active })}
+                    />
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Dalam Binaan?</Text>
+                    <Switch
+                        color={COLOR_PRIMARY}
+                        value={bodyUser.educate}
+                        onValueChange={() => setBodyUser({ ...bodyUser, educate: !bodyUser.educate })}
+                    />
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ color: COLOR_WHITE_1, marginRight: 10 }}>Pengguna Duafa?</Text>
+                    <Switch
+                        color={COLOR_PRIMARY}
+                        value={bodyUser.duafa}
+                        onValueChange={() => setBodyUser({ ...bodyUser, duafa: !bodyUser.duafa })}
+                    />
+                </View>
                 <Text style={{ color: COLOR_WHITE_1 }}>Dari Keluarga</Text>
                 <Dropdown
                     disable={uploading}

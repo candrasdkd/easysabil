@@ -272,7 +272,7 @@ const FamilyListScreen = () => {
 
                 <View style={styles.paginationContainer}>
                     <Text style={styles.paginationText}>
-                        Page {page + 1} of {Math.ceil(filteredFamily.length / itemsPerPage)}
+                        Page {page + 1} of {Math.ceil(filteredFamily.length / itemsPerPage)} (Total {filteredFamily.length} Data)
                     </Text>
                     <View style={styles.paginationButtons}>
                         <Button
